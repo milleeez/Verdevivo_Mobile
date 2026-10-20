@@ -1,0 +1,251 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha rotina — VerdeVivo</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="main-pad" style="background:var(--bg)">
+    <div class="container page-section">
+      <div class="section-head">
+        <div>
+          <h1 class="page-title">Minha rotina</h1>
+          <p class="page-sub">Pequenos gestos, todos os dias, mantêm seu jardim vivo.</p>
+        </div>
+        <button class="btn btn-primary" data-add-task><svg data-lucide="plus" width="18" height="18"></svg>Adicionar novo cuidado</button>
+      </div>
+
+      <div class="grid" style="grid-template-columns:2fr 1fr;gap:24px">
+        <div>
+          <!-- Streak -->
+          <div class="card" style="background:linear-gradient(120deg,var(--green-dark),var(--green-medium-2));color:#fff;padding:28px;border:none;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+            <div class="ring" id="streak-ring" style="--size:96px;--p:0;--ring-color:#ff7a4d;flex-shrink:0;background:#2a4a37">
+              <div class="ring-inner" id="streak-pct" style="background:#1e3d2b;color:#fff">0%</div>
+            </div>
+            <div style="flex:1;min-width:200px">
+              <h2 style="color:#fff;font-size:30px"><span id="streak-val">0</span> dias consecutivos!</h2>
+              <p style="color:#cfe0d3;margin-top:4px">Continue cuidando das suas plantas. Cada dia conta. 🌿</p>
+              <div class="bar" style="background:rgba(255,255,255,0.2);margin-top:14px"><span id="streak-bar" style="width:0%;background:var(--coral)"></span></div>
+            </div>
+          </div>
+
+          <!-- Weekly calendar -->
+          <div class="card mt-16" style="padding:22px">
+            <h3 style="margin-bottom:18px">Calendário semanal</h3>
+            <div class="cal-week" id="cal-week"></div>
+          </div>
+
+          <!-- Tasks -->
+          <div class="mt-24">
+            <div class="section-head" style="margin-bottom:18px">
+              <div><h3>Tarefas de hoje</h3><div class="sub" id="task-sub">Nenhuma tarefa pendente concluída.</div></div>
+              <button class="btn btn-ghost btn-sm" id="back-today" data-cal-today hidden>Voltar para hoje</button>
+            </div>
+            <div id="task-list"></div>
+          </div>
+        </div>
+
+        <!-- Sidebar: tip -->
+        <div>
+          <div class="card" style="padding:22px;position:sticky;top:calc(var(--nav-h) + 20px)">
+            <div class="flex items-center gap-8 mb-16">
+              <span class="m-icon m-icon-green"><svg data-lucide="lightbulb" width="22" height="22"></svg></span>
+              <h3 style="margin-bottom:0">Dica Biológica do Dia</h3>
+            </div>
+            <p class="text-muted" style="font-size:14.5px;line-height:1.8" id="bio-tip"></p>
+            <div class="problem-row mt-16" style="background:var(--green-lighter)">
+              <span class="p-icon" style="color:var(--green-medium)"><svg data-lucide="leaf" width="20" height="20"></svg></span>
+              <div><div class="p-title">Sabia?</div><div class="p-desc">As plantas "dormem" à noite, fazendo a respiração celular. Por isso, é melhor regar pela manhã.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html">
+            <span class="brand-logo"><svg class="leaf" data-lucide="leaf" width="22" height="22"></svg><span class="dot"></span></span>
+            <span class="brand-text"><span class="brand-name">VerdeVivo</span><span class="brand-tag">cuide do seu jardim</span></span>
+          </a>
+          <p class="about">Cuide das suas plantas. Cultive seu jardim.</p>
+        </div>
+        <div><h4>Navegação</h4><ul><li><a href="index.html">Início</a></li><li><a href="plants.html">Minhas Plantas</a></li><li><a href="routine.html">Rotina</a></li><li><a href="diagnosis.html">Diagnóstico IA</a></li></ul></div>
+        <div><h4>Comunidade</h4><ul><li><a href="community.html">Comunidade</a></li><li><a href="garden.html">Meu Jardim</a></li><li><a href="profile.html">Sobre</a></li></ul></div>
+        <div><h4>Extra</h4><ul><li><a href="plants.html">Minhas Plantas</a></li><li><a href="index.html">Dashboard</a></li></ul></div>
+      </div>
+      <div class="footer-bottom">© 2026 VerdeVivo — feito com muito verde.</div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <div class="modal-head"><h3>Adicionar cuidado</h3><button class="modal-close" data-close-modal><svg data-lucide="x" width="20" height="20"></svg></button></div>
+      <form id="task-form">
+        <div class="grid grid-2" style="gap:14px">
+          <div class="field"><label>Tipo</label>
+            <select id="tf-type">
+              <option>Rega</option><option>Adubar</option><option>Podar</option><option>Girar vaso</option><option>Verificar luz</option><option>Pulverizar</option><option>Limpar folhas</option>
+            </select>
+          </div>
+          <div class="field"><label>Planta</label>
+            <select id="tf-plant"><option value="">Todas</option></select>
+          </div>
+        </div>
+        <div class="grid grid-2" style="gap:14px">
+          <div class="field"><label>Horário</label><input type="time" id="tf-time" value="10:00" required></div>
+          <div class="field"><label>Data</label><input type="date" id="tf-date" required></div>
+        </div>
+        <div class="field"><label>Descrição</label><textarea id="tf-desc" placeholder="Ex: usar 150ml de água mineral"></textarea></div>
+        <button class="btn btn-primary btn-block" type="submit">Adicionar à rotina</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/plants.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/routine.js"></script>
+  <script src="js/lucide.min.js"></script>
+  <script>
+    App.init('routine');
+    UI.bindGlobalEvents();
+
+    const TIPS = [
+      'Regue pela manhã: reduz o risco de fungos e dá tempo das folhas secarem antes da noite.',
+      'Folhas amareladas podem indicar excesso de água. Toque o substrato antes de regar.',
+      'Gire seus vasos semanalmente para que todas as folhas recebam luz uniformemente.',
+      'No inverno, reduza a rega: o metabolismo das plantas desacelera.',
+      'Folhas com pontas marrons geralmente indicam ar seco ou excesso de sais.',
+      'Misture substrato com perlita ou carvão para melhorar a drenagem.',
+      'Algumas plantas, como a jiboia, purificam o ar e toleram mais sombra.',
+    ];
+
+    function viewTasks() {
+      return Routine.tasksForView(Routine.getSelectedKey());
+    }
+
+    function progressPct() {
+      const todays = Routine.getTasksToday();
+      if (!todays.length) return 0;
+      return Math.round(todays.filter(t => t.done).length / todays.length * 100);
+    }
+
+    function render() {
+      document.getElementById('cal-week').innerHTML = Routine.calendarHtml();
+
+      const key = Routine.getSelectedKey();
+      const todays = viewTasks();
+      const done = todays.filter(t => t.done).length;
+      const isToday = key === Routine.todayKey();
+
+      const list = document.getElementById('task-list');
+      const sub = document.getElementById('task-sub');
+      const backBtn = document.getElementById('back-today');
+
+      if (!isToday) {
+        const d = Routine.parseKey(key);
+        sub.textContent = `${done} de ${todays.length} tarefas · ${d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`;
+        if (backBtn) backBtn.hidden = false;
+      } else {
+        sub.textContent = `${done} de ${todays.length} tarefas concluídas hoje.`;
+        if (backBtn) backBtn.hidden = true;
+      }
+      const titleEl = document.querySelector('.mt-24 .section-head h3');
+      if (titleEl) titleEl.textContent = isToday ? 'Tarefas de hoje' : 'Tarefas do dia';
+
+      list.innerHTML = todays.length
+        ? todays.map(t => Routine.taskCard(t)).join('')
+        : `<div class="card empty-state"><div class="e-icon"><svg data-lucide="party-popper" width="44" height="44"></svg></div><h3>Nenhuma tarefa${isToday ? ' hoje' : ' nesse dia'}!</h3><p>Aproveite para adicionar um novo cuidado.</p></div>`;
+
+      document.getElementById('bio-tip').textContent = TIPS[new Date().getDate() % TIPS.length];
+      if (window.lucide) window.lucide.createIcons();
+      syncStreakPanel();
+    }
+
+    function syncStreakPanel() {
+      const p = progressPct();
+      const ring = document.getElementById('streak-ring');
+      if (ring) {
+        ring.style.setProperty('--p', p);
+        document.getElementById('streak-pct').textContent = p + '%';
+        document.getElementById('streak-bar').style.width = p + '%';
+        document.getElementById('streak-val').textContent = Routine.streak();
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const day = e.target.closest('[data-cal-day]');
+      if (day) {
+        Routine.setSelectedKey(day.getAttribute('data-cal-day'));
+        render();
+        return;
+      }
+      const reset = e.target.closest('[data-cal-today]');
+      if (reset) {
+        Routine.setSelectedKey(Routine.todayKey());
+        render();
+        return;
+      }
+      const t = e.target.closest('[data-toggle-task]');
+      if (t) {
+        const id = t.getAttribute('data-toggle-task');
+        const task = Routine.allTasks().find(x => x.id === id);
+        if (task) {
+          Routine.saveTask(id, { done: !task.done });
+          const todays = Routine.getTasksToday();
+          if (todays.length && todays.filter(x => x.done).length === todays.length) {
+            App.toast('Rotina concluída! 🎉', 'Todas as tarefas de hoje foram feitas.');
+          }
+          render();
+        }
+        return;
+      }
+      const r = e.target.closest('[data-remove-task]');
+      if (r) {
+        Routine.removeTask(r.getAttribute('data-remove-task'));
+        render();
+        App.toast('Tarefa removida', 'Cuidado excluído da rotina.');
+      }
+    });
+
+    document.querySelector('[data-add-task]').addEventListener('click', () => {
+      const sel = document.getElementById('tf-plant');
+      sel.innerHTML = '<option value="">Todas</option>' + App.getPlants().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      document.getElementById('tf-date').value = Routine.getSelectedKey();
+      document.getElementById('task-modal').classList.add('open');
+    });
+
+    document.getElementById('task-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const type = document.getElementById('tf-type').value;
+      const plantSel = document.getElementById('tf-plant').value;
+      const plantName = plantSel ? Plants.getById(plantSel).name : 'Todas as plantas';
+      const time = document.getElementById('tf-time').value;
+      const due = document.getElementById('tf-date').value || Routine.todayKey();
+      const desc = document.getElementById('tf-desc').value.trim() || '';
+      Routine.addTask({ type, plant: plantName, plantId: plantSel || null, time, desc, due });
+      document.getElementById('task-modal').classList.remove('open');
+      Routine.setSelectedKey(due);
+      App.toast('Cuidado adicionado!', `${type} · ${plantName} · ${time}`);
+      render();
+    });
+
+    Routine.ensureSeeded();
+    render();
+    window.__refreshAll = render;
+    window.__refreshPlants = render;
+  </script>
+</body>
+</html>

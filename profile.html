@@ -1,0 +1,202 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil — VerdeVivo</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="main-pad" style="background:var(--bg)">
+    <div class="container page-section">
+      <div class="profile-hero" id="profile-hero"></div>
+
+      <div id="profile-content">
+      <div class="grid" style="grid-template-columns:2fr 1.2fr;gap:24px">
+        <div>
+          <!-- Favorite plants -->
+          <div class="section-head" style="margin-bottom:16px"><div><h3>Plantas favoritas</h3><div class="sub" id="fav-sub"></div></div></div>
+          <div class="grid grid-3" id="fav-grid"></div>
+
+          <!-- My publications -->
+          <div class="section-head mt-24" style="margin-bottom:16px"><div><h3>Minhas publicações</h3><div class="sub">Um resumo da sua participação na comunidade</div></div></div>
+          <div id="my-posts"></div>
+        </div>
+
+        <!-- Achievements -->
+        <div>
+          <div class="card" style="padding:22px;position:sticky;top:calc(var(--nav-h) + 20px)">
+            <div class="section-head" style="margin-bottom:16px"><div><h3>Minhas conquistas</h3></div></div>
+            <div style="display:flex;flex-direction:column;gap:10px" id="badges"></div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html">
+            <span class="brand-logo"><svg class="leaf" data-lucide="leaf" width="22" height="22"></svg><span class="dot"></span></span>
+            <span class="brand-text"><span class="brand-name">VerdeVivo</span><span class="brand-tag">cuide do seu jardim</span></span>
+          </a>
+          <p class="about">Cuide das suas plantas. Cultive seu jardim.</p>
+        </div>
+        <div><h4>Navegação</h4><ul><li><a href="index.html">Início</a></li><li><a href="plants.html">Minhas Plantas</a></li><li><a href="routine.html">Rotina</a></li><li><a href="diagnosis.html">Diagnóstico IA</a></li></ul></div>
+        <div><h4>Comunidade</h4><ul><li><a href="community.html">Comunidade</a></li><li><a href="garden.html">Meu Jardim</a></li><li><a href="profile.html">Sobre</a></li></ul></div>
+        <div><h4>Extra</h4><ul><li><a href="plants.html">Minhas Plantas</a></li><li><a href="index.html">Dashboard</a></li></ul></div>
+      </div>
+      <div class="footer-bottom">© 2026 VerdeVivo — feito com muito verde.</div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal">
+      <div class="modal-head"><h3>Editar perfil</h3><button class="modal-close" data-close-modal><svg data-lucide="x" width="20" height="20"></svg></button></div>
+      <form id="profile-form">
+        <div class="field"><label>Nome</label><input id="pf-name" required></div>
+        <div class="field"><label>Bio</label><textarea id="pf-bio" maxlength="160"></textarea></div>
+        <div class="field"><label>Foto de perfil</label>
+          <input type="file" id="pf-avatar" accept="image/*">
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Salvar perfil</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/plants.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/routine.js"></script>
+  <script src="js/community.js"></script>
+  <script src="js/lucide.min.js"></script>
+  <script>
+    App.init('profile');
+    UI.bindGlobalEvents();
+
+    function render() {
+      const hero = document.getElementById('profile-hero');
+      const content = document.getElementById('profile-content');
+
+      if (!App.isLoggedIn()) {
+        content.style.display = 'none';
+        hero.innerHTML = `
+          <div style="flex:1;min-width:220px;text-align:center">
+            <h2>Você ainda não tem uma conta</h2>
+            <p class="ph-bio">Crie seu perfil para salvar favoritas, publicações e conquistas. Navegar pelo VerdeVivo não exige conta.</p>
+          </div>
+          <button class="btn btn-light" data-open-modal="login-modal"><svg data-lucide="log-in" width="16" height="16"></svg>Criar conta</button>`;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+      }
+      content.style.display = '';
+
+      const me = App.getProfile();
+      const plants = App.getPlants();
+      const posts = App.getPosts();
+      const myPosts = posts.filter(p => p.userId === Community.ME_ID);
+      const favs = plants.filter(p => p.favorite);
+      const streak = window.Routine ? window.Routine.streak() : 0;
+
+      hero.innerHTML = `
+        <img class="ph-avatar" src="${me.avatar || App.avatarFor(me.name)}" alt="foto de ${me.name}">
+        <div style="flex:1;min-width:220px">
+          <h2>${me.name}</h2>
+          <p class="ph-bio">${me.bio}</p>
+          <div class="ph-stats">
+            <div class="ph-stat"><div class="v">${plants.length}</div><div class="l">Plantas</div></div>
+            <div class="ph-stat"><div class="v">${myPosts.length}</div><div class="l">Publicações</div></div>
+            <div class="ph-stat"><div class="v">${favs.length}</div><div class="l">Favoritas</div></div>
+            <div class="ph-stat"><div class="v">${streak}d</div><div class="l">Sequência</div></div>
+          </div>
+        </div>
+        <button class="btn btn-light" data-edit-profile><svg data-lucide="pencil" width="16" height="16"></svg>Editar perfil</button>
+        <button class="btn btn-light" data-logout style="opacity:.85"><svg data-lucide="log-out" width="16" height="16"></svg>Sair</button>`;
+      hero.querySelector('[data-edit-profile]').addEventListener('click', openEditModal);
+      hero.querySelector('[data-logout]').addEventListener('click', () => {
+        if (!confirm('Sair da conta?')) return;
+        App.setLoggedIn(false);
+        App.buildNavbar('profile');
+        render();
+        App.toast('Você saiu da conta', 'Nenhuma conta ativa neste navegador.');
+      });
+
+      document.getElementById('fav-sub').textContent = favs.length ? `${favs.length} plantas marcadas como favoritas` : 'Toque no coração em uma planta para favoritar';
+      document.getElementById('fav-grid').innerHTML = favs.length
+        ? favs.map(p => UI.miniCard(p)).join('')
+        : `<div class="card empty-state" style="grid-column:1/-1"><div class="e-icon"><svg data-lucide="heart" width="44" height="44"></svg></div><h3>Sem favoritas ainda</h3></div>`;
+
+      document.getElementById('my-posts').innerHTML = myPosts.length
+        ? myPosts.map(p => Community.postHtml(p)).join('')
+        : `<div class="card empty-state"><div class="e-icon"><svg data-lucide="edit-3" width="44" height="44"></svg></div><h3>Você ainda não publicou</h3><a class="btn btn-primary mt-8" href="community.html">Ir para a comunidade</a></div>`;
+
+      // Achievements
+      const badges = buildBadges(plants, favs, streak, myPosts.length);
+      document.getElementById('badges').innerHTML = badges;
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function buildBadges(plants, favs, streak, postCount) {
+      const defs = [
+        { icon: '🌱', title: 'Primeira planta', desc: 'Cadastre sua primeira planta', unlocked: plants.length >= 1 },
+        { icon: '💧', title: '7 dias cuidando', desc: 'Complete 7 dias de rotina consecutivos', unlocked: streak >= 7 },
+        { icon: '🌿', title: '10 plantas cadastradas', desc: 'Adicione 10 plantas ao seu jardim', unlocked: plants.length >= 10 },
+        { icon: '🌳', title: 'Jardim saudável', desc: 'Tenha 5 plantas sem atenção', unlocked: plants.filter(p => !p.attention && Plants.healthStatus(p).cls !== 'danger').length >= 5 },
+        { icon: '🤝', title: 'Membro ativo', desc: 'Publique na comunidade', unlocked: postCount >= 1 },
+        { icon: '⭐', title: 'Colecionador', desc: 'Tenha 3 plantas favoritas', unlocked: favs.length >= 3 },
+      ];
+      return defs.map(b => `
+        <div class="achievement ${b.unlocked ? '' : 'locked'}">
+          <span class="a-icon">${b.icon}</span>
+          <div><div class="a-title">${b.title}</div><div class="a-desc">${b.desc}</div></div>
+          ${b.unlocked ? '<span class="badge badge-green" style="margin-left:auto">Desbloqueada</span>' : '<span class="badge badge-muted" style="margin-left:auto"><svg data-lucide="lock" width="12" height="12"></svg>Bloqueada</span>'}
+        </div>`).join('');
+    }
+
+    function openEditModal() {
+      const me = App.getProfile();
+      document.getElementById('pf-name').value = me.name;
+      document.getElementById('pf-bio').value = me.bio;
+      document.getElementById('pf-avatar').value = '';
+      document.getElementById('profile-modal').classList.add('open');
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const me = App.getProfile();
+      me.name = document.getElementById('pf-name').value.trim() || me.name;
+      me.bio = document.getElementById('pf-bio').value.trim();
+      const file = document.getElementById('pf-avatar').files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          me.avatar = ev.target.result;
+          App.saveProfile(me);
+          App.toast('Perfil salvo!', 'Foto atualizada.');
+          render();
+          if (window.App.buildNavbar) App.buildNavbar('profile');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        App.saveProfile(me);
+        App.toast('Perfil salvo!', 'Suas informações foram atualizadas.');
+        render();
+      }
+      document.getElementById('profile-modal').classList.remove('open');
+    });
+
+    render();
+    window.__refreshAll = render;
+    window.__authCb = render;
+  </script>
+</body>
+</html>

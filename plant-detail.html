@@ -1,0 +1,288 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhes da planta — VerdeVivo</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="main-pad" style="background:var(--bg)">
+    <div class="container page-section" id="detail-root">
+      <div class="skeleton" style="height:40px;width:40%;margin-bottom:20px"></div>
+      <div class="skeleton" style="height:400px;border-radius:20px"></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html">
+            <span class="brand-logo"><svg class="leaf" data-lucide="leaf" width="22" height="22"></svg><span class="dot"></span></span>
+            <span class="brand-text"><span class="brand-name">VerdeVivo</span><span class="brand-tag">cuide do seu jardim</span></span>
+          </a>
+          <p class="about">Cuide das suas plantas. Cultive seu jardim.</p>
+        </div>
+        <div>
+          <h4>Navegação</h4>
+          <ul><li><a href="index.html">Início</a></li><li><a href="plants.html">Minhas Plantas</a></li><li><a href="routine.html">Rotina</a></li><li><a href="diagnosis.html">Diagnóstico IA</a></li></ul>
+        </div>
+        <div><h4>Comunidade</h4><ul><li><a href="community.html">Comunidade</a></li><li><a href="garden.html">Meu Jardim</a></li><li><a href="profile.html">Sobre</a></li></ul></div>
+        <div><h4>Extra</h4><ul><li><a href="plants.html">Minhas Plantas</a></li><li><a href="index.html">Dashboard</a></li></ul></div>
+      </div>
+      <div class="footer-bottom">© 2026 VerdeVivo — feito com muito verde.</div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="measure-modal">
+    <div class="modal">
+      <div class="modal-head"><h3>Registrar nova medição</h3><button class="modal-close" data-close-modal><svg data-lucide="x" width="20" height="20"></svg></button></div>
+      <form id="measure-form">
+        <div class="field"><label>Altura atual (cm)</label><input type="number" id="m-height" min="0" step="0.5" required></div>
+        <div class="field"><label>Umidade do substrato (%)</label><input type="number" id="m-hum" min="0" max="100" required></div>
+        <div class="field"><label>Luz recebida (%)</label><input type="number" id="m-light" min="0" max="100" required></div>
+        <div class="field"><label>Data</label><input type="date" id="m-date" value=""></div>
+        <button class="btn btn-primary btn-block" type="submit">Salvar medição</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/plants.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/chart.min.js"></script>
+  <script src="js/lucide.min.js"></script>
+  <script>
+    App.init('plants');
+    UI.bindGlobalEvents();
+
+    const id = new URLSearchParams(location.search).get('id');
+    let current = id && Plants.getById(id);
+
+    function humidityLevel(p) {
+      const h = p.humidity;
+      if (h < 30) return { label: 'Nível crítico', color: 'var(--danger)' };
+      if (h < 50) return { label: 'Abaixo do ideal', color: 'var(--warning)' };
+      if (h <= 80) return { label: 'Nível ideal', color: 'var(--success)' };
+      return { label: 'Acima do ideal', color: 'var(--info)' };
+    }
+
+    function lastFertDays(p) {
+      if (!p.lastFert) return 'Nunca';
+      const diff = Math.floor((Date.now() - new Date(p.lastFert)) / 86400000);
+      return diff <= 0 ? 'Hoje' : `Última aplicação há ${diff} dias`;
+    }
+
+    function render() {
+      const p = current;
+      if (!p) {
+        document.getElementById('detail-root').innerHTML = `<div class="card empty-state">
+          <div class="e-icon"><svg data-lucide="search-x" width="44" height="44"></svg></div>
+          <h3>Planta não encontrada</h3>
+          <a class="btn btn-primary mt-16" href="plants.html">Voltar as minhas plantas</a>
+        </div>`;
+        return;
+      }
+
+      const hum = humidityLevel(p);
+      const s = Plants.healthStatus(p);
+      const lastWatered = UI.timeAgo(p.lastWatered);
+      const fert = lastFertDays(p);
+
+      document.getElementById('detail-root').innerHTML = `
+        <div class="flex items-center gap-8 mb-24 wrap">
+          <a class="btn btn-ghost btn-sm" href="plants.html"><svg data-lucide="arrow-left" width="16" height="16"></svg>Minhas Plantas</a>
+          <span class="badge ${s.cls === 'danger' ? 'badge-danger' : s.cls === 'warn' ? 'badge-warning' : 'badge-green'}">${s.label}</span>
+          ${p.favorite ? `<span class="badge badge-coral"><svg data-lucide="heart" width="13" height="13" fill="currentColor"></svg>Favorita</span>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" data-edit-plant>Editar</button>
+          <button class="btn btn-outline btn-sm" data-del-plant style="border-color:var(--danger-ink);color:var(--danger-ink)">Excluir</button>
+        </div>
+
+        <div class="grid" style="grid-template-columns:1.2fr 1fr;gap:28px" id="detail-grid">
+          <div>
+            <div style="position:relative">
+              <img src="${p.image}" alt="${p.name}" style="width:100%;height:460px;object-fit:cover;border-radius:22px;box-shadow:var(--shadow)">
+              <span class="badge badge-green" style="position:absolute;top:16px;left:16px">Em ${p.space}</span>
+            </div>
+
+            <div class="card mt-16" style="padding:22px">
+              <h3 style="margin-bottom:18px">Histórico de desenvolvimento</h3>
+              <div class="timeline">
+                ${timelineHtml(p)}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h1 class="page-title" style="margin-bottom:2px">${p.name}</h1>
+            <p class="page-sub"><em>${p.scientific}</em></p>
+
+            <div class="card mt-24" style="padding:22px">
+              <div class="grid grid-3" style="gap:16px">
+                <div style="text-align:center"><div class="m-value" style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--green-dark)">${p.ageYears.toLocaleString('pt-BR')}</div><div class="text-muted" style="font-size:12.5px">Idade (anos)</div></div>
+                <div style="text-align:center"><div class="m-value" style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--green-dark)">${p.heightCm} cm</div><div class="text-muted" style="font-size:12.5px">Altura</div></div>
+                <div style="text-align:center"><div class="m-value" style="font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--success-ink)">${p.health}</div><div class="text-muted" style="font-size:12.5px">Saúde</div></div>
+              </div>
+            </div>
+
+            <div class="card mt-16" style="padding:22px">
+              <div class="flex items-center gap-12" style="margin-bottom:16px">
+                <div class="flex items-center gap-8" style="flex:1"><svg data-lucide="droplet" width="20" height="20" style="color:var(--info)"></svg><strong>Umidade do substrato</strong></div>
+                <span class="m-value" style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--green-dark)">${p.humidity}%</span>
+              </div>
+              <div class="bar ${p.humidity < 30 ? 'bar-danger' : p.humidity < 50 ? 'bar-warn' : ''}"><span style="width:${Math.max(0,Math.min(100,p.humidity))}%"></span></div>
+              <div class="flex justify-between mt-8" style="font-size:12.5px;color:var(--text-muted)">
+                <span>Nível crítico (0–30%)</span><span style="color:var(--green-dark);font-weight:700">${hum.label}</span>
+              </div>
+
+              <hr class="divider">
+              <div class="flex items-center gap-12" style="margin-bottom:16px">
+                <div class="flex items-center gap-8" style="flex:1"><svg data-lucide="sun" width="20" height="20" style="color:var(--warning-ink)"></svg><strong>Luz solar</strong></div>
+                <span class="m-value" style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--green-dark)">${p.light}%</span>
+              </div>
+              <div class="bar bar-coral"><span style="width:${Math.max(0,Math.min(100,p.light))}%"></span></div>
+
+              <hr class="divider">
+              <div class="flex items-center gap-12" style="margin-bottom:16px">
+                <div class="flex items-center gap-8" style="flex:1"><svg data-lucide="thermometer" width="20" height="20" style="color:var(--coral-dark)"></svg><strong>Temperatura</strong></div>
+                <span class="m-value" style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--green-dark)">${p.temperature}°C</span>
+              </div>
+              <div class="flex justify-between" style="font-size:12.5px;color:var(--text-muted)"><span>Ideal: 18–26°C</span><span style="color:var(--green-dark);font-weight:700">${p.temperature >= 18 && p.temperature <= 26 ? 'Confortável' : 'Fora da faixa'}</span></div>
+
+              <hr class="divider">
+              <div class="flex items-center gap-12">
+                <div class="flex items-center gap-8" style="flex:1"><svg data-lucide="flask-conical" width="20" height="20" style="color:var(--green-medium)"></svg><strong>Nutrição</strong></div>
+                <span class="text-muted" style="font-size:13.5px">${fert}</span>
+              </div>
+            </div>
+
+            <div class="card mt-16" style="padding:22px">
+              <div class="flex items-center justify-between" style="margin-bottom:12px">
+                <h3>Último cuidado e próximos passos</h3>
+              </div>
+              <div class="flex wrap gap-8 mb-16">
+                <span class="badge badge-muted"><svg data-lucide="droplet" width="13" height="13"></svg>Última rega: ${lastWatered}</span>
+                ${p.lastFert ? `<span class="badge badge-muted"><svg data-lucide="flask-conical" width="13" height="13"></svg>Adubação: ${UI.timeAgo(p.lastFert)}</span>` : ''}
+              </div>
+              <div class="problem-row" style="background:var(--green-lighter)">
+                <span class="p-icon" style="color:var(--green-medium)"><svg data-lucide="calendar-clock" width="20" height="20"></svg></span>
+                <div><div class="p-title">Próximo cuidado</div><div class="p-desc">${p.nextCare || 'Regar quando o substrato estiver seco'}</div></div>
+              </div>
+              <button class="btn btn-primary btn-block mt-16" data-care="${p.id}">Registrar novo cuidado</button>
+              <button class="btn btn-ghost btn-block mt-8" data-measure>Registrar nova medição</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-16" style="padding:22px">
+          <h3 style="margin-bottom:8px">Gráfico de crescimento</h3>
+          <p class="text-muted" style="font-size:13.5px;margin-bottom:16px">Evolução da altura ao longo do tempo (cm)</p>
+          <div class="chart-box"><canvas id="growth-chart"></canvas></div>
+        </div>
+      `;
+      document.querySelector('[data-edit-plant]').addEventListener('click', () => UI.openPlantModal(p));
+      document.querySelector('[data-del-plant]').addEventListener('click', () => confirmDelete(p));
+      document.querySelector('[data-measure]').addEventListener('click', () => openMeasure());
+      if (window.lucide) window.lucide.createIcons();
+      drawChart(p);
+    }
+
+    function timelineHtml(p) {
+      const items = p.history && p.history.length ? p.history : [{ type: 'Brotamento', date: App.formatDate(new Date()), desc: 'Planta em monitoramento — primeiro marco registrado.' }];
+      const all = [
+        { type: 'Brotamento', emoji: '🌱' },
+        { type: 'Folhas novas', emoji: '🌿' },
+        { type: 'Maturidade', emoji: '🌳' },
+        { type: 'Floração', emoji: '🌸' },
+      ];
+      return all.map(stage => {
+        const found = items.find(i => i.type.toLowerCase() === stage.type.toLowerCase());
+        if (found) {
+          return `<div class="tl-item ${stage.type === 'Floração' ? 'tl-dot-coral' : ''}">
+            <div class="tl-title">${found.type} ${found.emoji}</div>
+            <div class="tl-date">${found.date}</div>
+            ${found.desc ? `<div class="tl-desc">${found.desc}</div>` : ''}
+          </div>`;
+        }
+        return `<div class="tl-item" style="opacity:.55">
+          <div class="tl-title">${stage.type} ${stage.emoji}</div>
+          <div class="tl-date">Ainda não registrado</div>
+        </div>`;
+      }).join('');
+    }
+
+    function drawChart(p) {
+      const ctx = document.getElementById('growth-chart');
+      if (!ctx) return;
+      if (window.__growthChart) window.__growthChart.destroy();
+      const data = (p.measurements && p.measurements.length ? p.measurements : [{ date: App.formatDate(new Date()), height: p.heightCm }]);
+      window.__growthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(m => m.date),
+          datasets: [{
+            label: 'Altura (cm)',
+            data: data.map(m => m.height),
+            fill: true,
+            tension: 0.4,
+            borderColor: '#2e5d42',
+            backgroundColor: 'rgba(76,124,95,0.15)',
+            pointBackgroundColor: '#ff7a4d',
+            pointBorderColor: '#fff',
+            pointRadius: 5,
+            pointHoverRadius: 7,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: false, grid: { color: '#eef0ec' } }, x: { grid: { display: false } } }
+        }
+      });
+    }
+
+    function openMeasure() {
+      const m = document.getElementById('measure-modal');
+      document.getElementById('m-height').value = current.heightCm;
+      document.getElementById('m-hum').value = current.humidity;
+      document.getElementById('m-light').value = current.light;
+      document.getElementById('m-date').value = new Date().toISOString().slice(0, 10);
+      m.classList.add('open');
+    }
+
+    document.getElementById('measure-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const height = parseFloat(document.getElementById('m-height').value);
+      const hum = parseFloat(document.getElementById('m-hum').value);
+      const light = parseFloat(document.getElementById('m-light').value);
+      const date = document.getElementById('m-date').value;
+      const p = current;
+      const measurements = [...(p.measurements || []), { date, height, humidity: hum, light }];
+      Plants.updatePlant(p.id, { heightCm: height, humidity: hum, light, measurements });
+      current = Plants.getById(p.id);
+      document.getElementById('measure-modal').classList.remove('open');
+      App.toast('Medição registrada!', `${p.name} agora com ${height} cm`);
+      render();
+    });
+
+    function confirmDelete(p) {
+      const ok = confirm(`Excluir ${p.name} definitivamente?`);
+      if (!ok) return;
+      Plants.deletePlant(p.id);
+      App.toast('Planta excluída', p.name);
+      location.href = 'plants.html';
+    }
+
+    render();
+    window.__refreshPlants = render;
+  </script>
+</body>
+</html>

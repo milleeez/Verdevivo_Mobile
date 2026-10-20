@@ -1,0 +1,213 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Jardim — VerdeVivo</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="main-pad" style="background:var(--bg)">
+    <div class="container page-section">
+      <div class="section-head">
+        <div>
+          <h1 class="page-title">Meu Jardim</h1>
+          <p class="page-sub">Organize suas plantas por espaço e visualize seus próximos cuidados.</p>
+        </div>
+        <button class="btn btn-primary" data-open-plant><svg data-lucide="plus" width="18" height="18"></svg>Adicionar planta ao jardim</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="card" style="padding:24px;margin-bottom:28px">
+        <div class="stat-panel" id="garden-stats"></div>
+      </div>
+
+      <!-- Garden visualization -->
+      <h3 style="margin-bottom:16px">Espaços do jardim</h3>
+      <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:20px" id="garden-spaces"></div>
+
+      <!-- Plants not assigned -->
+      <div class="card mt-24" style="padding:22px">
+        <h3 style="margin-bottom:10px">Plantas sem espaço</h3>
+        <p class="text-muted" style="font-size:13.5px;margin-bottom:14px">Arraste para um espaço acima ou clique para atribuir.</p>
+        <div id="unassigned" style="min-height:60px"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html">
+            <span class="brand-logo"><svg class="leaf" data-lucide="leaf" width="22" height="22"></svg><span class="dot"></span></span>
+            <span class="brand-text"><span class="brand-name">VerdeVivo</span><span class="brand-tag">cuide do seu jardim</span></span>
+          </a>
+          <p class="about">Cuide das suas plantas. Cultive seu jardim.</p>
+        </div>
+        <div><h4>Navegação</h4><ul><li><a href="index.html">Início</a></li><li><a href="plants.html">Minhas Plantas</a></li><li><a href="routine.html">Rotina</a></li><li><a href="diagnosis.html">Diagnóstico IA</a></li></ul></div>
+        <div><h4>Comunidade</h4><ul><li><a href="community.html">Comunidade</a></li><li><a href="garden.html">Meu Jardim</a></li><li><a href="profile.html">Sobre</a></li></ul></div>
+        <div><h4>Extra</h4><ul><li><a href="plants.html">Minhas Plantas</a></li><li><a href="index.html">Dashboard</a></li></ul></div>
+      </div>
+      <div class="footer-bottom">© 2026 VerdeVivo — feito com muito verde.</div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="assign-modal">
+    <div class="modal">
+      <div class="modal-head"><h3>Atribuir espaço</h3><button class="modal-close" data-close-modal><svg data-lucide="x" width="20" height="20"></svg></button></div>
+      <div class="field"><label>Planta</label><select id="assign-plant"></select></div>
+      <div class="field"><label>Espaço</label>
+        <select id="assign-space">
+          <option>Sala</option><option>Quarto</option><option>Varanda</option><option>Jardim</option><option>Escritório</option><option>Área externa</option><option>Banheiro</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-block" id="assign-save">Atribuir</button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/plants.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/lucide.min.js"></script>
+  <script>
+    App.init('garden');
+    UI.bindGlobalEvents();
+
+    const SPACES = ['Sala', 'Quarto', 'Varanda', 'Jardim', 'Escritório', 'Área externa'];
+    const SPACE_ICONS = { 'Sala': 'sofa', 'Quarto': 'bed-double', 'Varanda': 'sun', 'Jardim': 'trees', 'Escritório': 'monitor', 'Área externa': 'home' };
+
+    function assignedIds() {
+      const g = App.getGarden();
+      return Object.values(g).flat();
+    }
+
+    function renderGarden() {
+      const plants = App.getPlants();
+      const garden = App.getGarden();
+      const allIds = assignedIds();
+
+      const healthy = plants.filter(p => { const c = Plants.healthStatus(p).cls; return c !== 'danger' && c !== 'warn' && !p.attention; }).length;
+      const attention = plants.length - healthy;
+      const pendingCares = App.getTasks().filter(t => !t.done && !t.removed).length;
+
+      document.getElementById('garden-stats').innerHTML = `
+        <div class="metric-card" style="display:flex;flex-direction:row;align-items:center;gap:14px;gap:16px">
+          <span class="m-icon m-icon-green"><svg data-lucide="leaf" width="22" height="22"></svg></span>
+          <div><div class="m-value" style="font-size:24px">${plants.length}</div><div class="m-label">Total de plantas</div></div>
+        </div>
+        <div class="metric-card" style="display:flex;flex-direction:row;align-items:center;gap:14px;gap:16px">
+          <span class="m-icon m-icon-green" style="background:var(--green-light);color:var(--green-dark)"><svg data-lucide="smile" width="22" height="22"></svg></span>
+          <div><div class="m-value" style="font-size:24px;color:var(--success-ink)">${healthy}</div><div class="m-label">Plantas saudáveis</div></div>
+        </div>
+        <div class="metric-card" style="display:flex;flex-direction:row;align-items:center;gap:14px;gap:16px">
+          <span class="m-icon m-icon-coral"><svg data-lucide="alert-triangle" width="22" height="22"></svg></span>
+          <div><div class="m-value" style="font-size:24px;color:var(--coral-ink)">${attention}</div><div class="m-label">Plantas em atenção</div></div>
+        </div>
+        <div class="metric-card" style="display:flex;flex-direction:row;align-items:center;gap:14px;gap:16px">
+          <span class="m-icon m-icon-warn"><svg data-lucide="calendar-clock" width="22" height="22"></svg></span>
+          <div><div class="m-value" style="font-size:24px">${pendingCares}</div><div class="m-label">Próximos cuidados</div></div>
+        </div>`;
+
+      document.getElementById('garden-spaces').innerHTML = SPACES.map(sp => {
+        const items = (garden[sp] || []).map(pid => plants.find(p => p.id === pid)).filter(Boolean);
+        return `
+          <div class="space-area" data-space="${sp}" data-drop="${sp}">
+            <div class="sa-title"><svg data-lucide="${SPACE_ICONS[sp]}"></svg>${sp} <span class="text-muted" style="font-size:12px;margin-left:auto">${items.length}</span></div>
+            <div class="space-plants">
+              ${items.map(p => gardenPlant(p)).join('') || '<p class="text-muted" style="font-size:12.5px;text-align:center;padding:20px 0">Vazio — arraste uma planta aqui</p>'}
+            </div>
+          </div>`;
+      }).join('');
+
+      const unassigned = plants.filter(p => !allIds.includes(p.id));
+      document.getElementById('unassigned').innerHTML = unassigned.length
+        ? `<div class="flex wrap gap-8">${unassigned.map(p => gardenPlant(p, true)).join('')}</div>`
+        : '<p class="text-muted" style="font-size:13px">Todas as plantas estão em um espaço.</p>';
+
+      if (window.lucide) window.lucide.createIcons();
+      bindDrag();
+    }
+
+    function gardenPlant(p, unassigned) {
+      return `
+        <div class="garden-plant" draggable="true" data-plant="${p.id}" ${unassigned ? 'data-unassigned' : ''}>
+          <img src="${p.image}" alt="${p.name}" title="${p.name}">
+          <span>${p.name}</span>
+          <button class="gp-remove" data-gp-remove="${p.id}" title="Remover do espaço"><svg data-lucide="x" width="15" height="15"></svg></button>
+        </div>`;
+    }
+
+    function movePlant(plantId, space) {
+      const garden = App.getGarden();
+      for (const k in garden) garden[k] = (garden[k] || []).filter(pid => pid !== plantId);
+      if (!garden[space]) garden[space] = [];
+      garden[space].push(plantId);
+      App.saveGarden(garden);
+      const p = Plants.getById(plantId);
+      if (p) Plants.updatePlant(plantId, { space });
+      renderGarden();
+    }
+
+    function bindDrag() {
+      document.querySelectorAll('#garden-spaces .space-area').forEach(area => {
+        area.addEventListener('dragover', (e) => { e.preventDefault(); });
+        area.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData('text/plain');
+          if (id) movePlant(id, area.getAttribute('data-space'));
+        });
+      });
+      document.querySelectorAll('.garden-plant[data-plant]').forEach(el => {
+        el.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', el.getAttribute('data-plant'));
+        });
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const rm = e.target.closest('[data-gp-remove]');
+      if (rm) {
+        gardenRemoveFromAll(rm.getAttribute('data-gp-remove'));
+        return;
+      }
+    });
+
+    function gardenRemoveFromAll(id) {
+      const garden = App.getGarden();
+      for (const k in garden) garden[k] = (garden[k] || []).filter(pid => pid !== id);
+      App.saveGarden(garden);
+      const p = Plants.getById(id);
+      if (p) Plants.updatePlant(id, { space: '—' });
+      renderGarden();
+      App.toast('Planta removida do jardim', 'Você ainda pode vê-la em Minhas Plantas.');
+    }
+
+    document.getElementById('assign-save').addEventListener('click', () => {
+      const pid = document.getElementById('assign-plant').value;
+      const space = document.getElementById('assign-space').value;
+      if (pid) { movePlant(pid, space); App.toast('Planta atribuída', space); }
+      document.getElementById('assign-modal').classList.remove('open');
+    });
+
+    // Note: gp-remove uses gardenRemoveFromAll instead of movePlant(null) to avoid issues
+    document.querySelector('[data-open-plant]').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const sel = document.getElementById('assign-plant');
+      sel.innerHTML = App.getPlants().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      document.getElementById('assign-modal').classList.add('open');
+    });
+
+    // The global UI delegation also binds [data-open-plant]; remove its effect here by using special handler above.
+    renderGarden();
+    window.__refreshAll = renderGarden;
+  </script>
+</body>
+</html>

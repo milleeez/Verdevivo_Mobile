@@ -101,6 +101,7 @@
       content.style.display = '';
 
       const me = App.getProfile();
+      const acc = App.currentUser() || {};
       const plants = App.getPlants();
       const posts = App.getPosts();
       const myPosts = posts.filter(p => p.userId === Community.ME_ID);
@@ -111,6 +112,7 @@
         <img class="ph-avatar" src="${me.avatar || App.avatarFor(me.name)}" alt="foto de ${me.name}">
         <div style="flex:1;min-width:220px">
           <h2>${me.name}</h2>
+          <p class="ph-bio" style="font-size:13.5px;color:#d6e6da">${acc.email || ''}</p>
           <p class="ph-bio">${me.bio}</p>
           <div class="ph-stats">
             <div class="ph-stat"><div class="v">${plants.length}</div><div class="l">Plantas</div></div>
@@ -120,11 +122,18 @@
           </div>
         </div>
         <button class="btn btn-light" data-edit-profile><svg data-lucide="pencil" width="16" height="16"></svg>Editar perfil</button>
+        <button class="btn btn-light" data-reset-data style="opacity:.85"><svg data-lucide="rotate-ccw" width="16" height="16"></svg>Resetar dados</button>
         <button class="btn btn-light" data-logout style="opacity:.85"><svg data-lucide="log-out" width="16" height="16"></svg>Sair</button>`;
       hero.querySelector('[data-edit-profile]').addEventListener('click', openEditModal);
+      hero.querySelector('[data-reset-data]').addEventListener('click', () => {
+        if (!confirm('Restaurar os dados de exemplo? Isso substitui suas plantas, tarefas e publicações atuais.')) return;
+        App.resetData();
+        App.toast('Dados restaurados', 'Seu jardim voltou ao estado inicial de exemplo.');
+        render();
+      });
       hero.querySelector('[data-logout]').addEventListener('click', () => {
         if (!confirm('Sair da conta?')) return;
-        App.setLoggedIn(false);
+        App.logout();
         App.buildNavbar('profile');
         render();
         App.toast('Você saiu da conta', 'Nenhuma conta ativa neste navegador.');

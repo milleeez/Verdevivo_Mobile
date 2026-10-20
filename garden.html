@@ -14,7 +14,7 @@
   <div id="navbar"></div>
 
   <main class="main-pad" style="background:var(--bg)">
-    <div class="container page-section">
+    <div class="container page-section" id="app-root">
       <div class="section-head">
         <div>
           <h1 class="page-title">Meu Jardim</h1>
@@ -89,6 +89,7 @@
     }
 
     function renderGarden() {
+      if (!App.isLoggedIn()) return;
       const plants = App.getPlants();
       const garden = App.getGarden();
       const allIds = assignedIds();
@@ -138,7 +139,9 @@
     function gardenPlant(p, unassigned) {
       return `
         <div class="garden-plant" draggable="true" data-plant="${p.id}" ${unassigned ? 'data-unassigned' : ''}>
-          <img src="${p.image}" alt="${p.name}" title="${p.name}">
+            <img src="${p.image}" alt="${p.name}" title="${p.name}"
+              onload="this.classList.remove('img-failed')"
+              onerror="this.onerror=null;this.classList.add('img-failed');this.src='${UI.FALLBACK_IMG}'">
           <span>${p.name}</span>
           <button class="gp-remove" data-gp-remove="${p.id}" title="Remover do espaço"><svg data-lucide="x" width="15" height="15"></svg></button>
         </div>`;
@@ -197,16 +200,26 @@
     });
 
     // Note: gp-remove uses gardenRemoveFromAll instead of movePlant(null) to avoid issues
-    document.querySelector('[data-open-plant]').addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const sel = document.getElementById('assign-plant');
-      sel.innerHTML = App.getPlants().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      document.getElementById('assign-modal').classList.add('open');
+    let plantBtnBound = false;
+    function bindPlantButton() {
+      if (plantBtnBound) return;
+      plantBtnBound = true;
+      document.querySelector('[data-open-plant]').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sel = document.getElementById('assign-plant');
+        sel.innerHTML = App.getPlants().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        document.getElementById('assign-modal').classList.add('open');
+      });
+    }
+
+    App.guardPage({
+      root: 'app-root',
+      title: 'Seu jardim fica na sua conta',
+      message: 'Crie uma conta para organizar suas plantas por espaço e ver seus próximos cuidados.',
+      onReady: () => { plantBtnBound = false; bindPlantButton(); renderGarden(); },
     });
 
-    // The global UI delegation also binds [data-open-plant]; remove its effect here by using special handler above.
-    renderGarden();
     window.__refreshAll = renderGarden;
   </script>
 </body>

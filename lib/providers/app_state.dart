@@ -4,6 +4,7 @@ import '../models/task.dart';
 import '../models/post.dart';
 import '../models/notification_item.dart';
 import '../models/diagnosis_result.dart';
+import '../models/user_account.dart';
 
 class Achievement {
   final String icon;
@@ -20,12 +21,15 @@ class Achievement {
 }
 
 class AppState extends ChangeNotifier {
+  // Accounts & Session
+  final List<UserAccount> _accounts = [];
+  UserAccount? _currentUser;
+
   List<Plant> _plants = Plant.getDefaultPlants();
   List<PlantTask> _tasks = PlantTask.getDefaultTasks();
   List<CommunityPost> _posts = CommunityPost.getDefaultPosts();
   List<NotificationItem> _notifications = NotificationItem.getDefaultNotifications();
 
-  String _userName = 'Jardineiro(a)';
   String _userBio = 'Cultivando meu refúgio verde em casa. Apaixonado(a) por aráceas e folhagens tropicais.';
   int _streakDays = 3;
 
@@ -39,13 +43,18 @@ class AppState extends ChangeNotifier {
     'Área externa': [],
   };
 
-  // Getters
+  // Auth Getters
+  bool get isLoggedIn => _currentUser != null;
+  UserAccount? get currentUser => _currentUser;
+  String get userName => _currentUser?.name ?? 'Visitante';
+  String get userEmail => _currentUser?.email ?? '';
+  String get userBio => _userBio;
+
+  // Data Getters
   List<Plant> get plants => _plants;
   List<PlantTask> get tasks => _tasks;
   List<CommunityPost> get posts => _posts;
   List<NotificationItem> get notifications => _notifications;
-  String get userName => _userName;
-  String get userBio => _userBio;
   int get streakDays => _streakDays;
   Map<String, List<String>> get gardenSpaces => _gardenSpaces;
 
@@ -54,9 +63,86 @@ class AppState extends ChangeNotifier {
   List<Plant> get favoritePlants => _plants.where((p) => p.favorite).toList();
   int get completedTasksCount => _tasks.where((t) => t.done).length;
 
+  // Authentication Methods
+  AuthResult signUp(String name, String email, String password) {
+    name = name.trim();
+    email = email.trim().toLowerCase();
+    password = password.trim();
+
+    if (name.isEmpty) {
+      return AuthResult(ok: false, error: 'Informe seu nome.');
+    }
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      return AuthResult(ok: false, error: 'Informe um e-mail válido.');
+    }
+    if (password.length < 4) {
+      return AuthResult(ok: false, error: 'A senha precisa ter ao menos 4 caracteres.');
+    }
+    if (_accounts.any((a) => a.email == email)) {
+      return AuthResult(ok: false, error: 'Já existe uma conta com este e-mail. Faça login.');
+    }
+
+    final newAccount = UserAccount(
+      name: name,
+      email: email,
+      password: password,
+      createdAt: DateTime.now(),
+    );
+    _accounts.add(newAccount);
+    _currentUser = newAccount;
+
+    addNotification('Bem-vindo(a) ao VerdeVivo, $name! Comece adicionando uma planta.', 'leaf', 'green');
+    notifyListeners();
+    return AuthResult(ok: true, account: newAccount);
+  }
+
+  AuthResult signIn(String email, String password) {
+    email = email.trim().toLowerCase();
+    password = password.trim();
+
+    final account = _accounts.firstWhere(
+      (a) => a.email == email,
+      orElse: () => UserAccount(name: '', email: '', password: '', createdAt: DateTime.now()),
+    );
+
+    if (account.email.isEmpty) {
+      return AuthResult(ok: false, error: 'Nenhuma conta encontrada com este e-mail.');
+    }
+    if (account.password != password) {
+      return AuthResult(ok: false, error: 'Senha incorreta.');
+    }
+
+    _currentUser = account;
+    addNotification('Bem-vindo(a) de volta, ${account.name}!', 'check', 'green');
+    notifyListeners();
+    return AuthResult(ok: true, account: account);
+  }
+
+  void logout() {
+    _currentUser = null;
+    notifyListeners();
+  }
+
+  void resetData() {
+    _plants = Plant.getDefaultPlants();
+    _tasks = PlantTask.getDefaultTasks();
+    _posts = CommunityPost.getDefaultPosts();
+    _gardenSpaces = {
+      'Sala': ['p1', 'p2', 'p6'],
+      'Quarto': ['p3'],
+      'Varanda': ['p4'],
+      'Escritório': ['p5', 'p8'],
+      'Banheiro': ['p7'],
+      'Jardim': [],
+      'Área externa': [],
+    };
+    _notifications = NotificationItem.getDefaultNotifications();
+    notifyListeners();
+  }
+
   // Plant Actions
   void toggleFavorite(String plantId) {
-    final idx = _plants.indexWhere((p) => p.id === plantId);
+    final idx = _plants.indexWhere((p) => p.id == plantId);
     if (idx != -1) {
       _plants[idx].favorite = !_plants[idx].favorite;
       notifyListeners();
@@ -95,10 +181,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updatePlant(Plant plant) {
-    final idx = _plants.indexWhere((p) => p.id == plant.id);
+  void updatePlant(Plant updated) {
+    final idx = _plants.indexWhere((p) => p.id == updated.id);
     if (idx != -1) {
-      _plants[idx] = plant;
+      final prevSpace = _plants[idx].space;
+      _plants[idx] = updated;
+
+      // Keep garden space in sync if space changed
+      if (prevSpace != updated.space) {
+        if (_gardenSpaces.containsKey(prevSpace)) {
+          _gardenSpaces[prevSpace]!.remove(updated.id);
+        }
+        if (!_gardenSpaces.containsKey(updated.space)) {
+          _gardenSpaces[updated.space] = [];
+        }
+        if (!_gardenSpaces[updated.space]!.contains(updated.id)) {
+          _gardenSpaces[updated.space]!.add(updated.id);
+        }
+      }
       notifyListeners();
     }
   }
@@ -152,7 +252,7 @@ class AppState extends ChangeNotifier {
   void addComment(String postId, String text) {
     final idx = _posts.indexWhere((p) => p.id == postId);
     if (idx != -1) {
-      _posts[idx].comments.add(PostComment(author: _userName, text: text));
+      _posts[idx].comments.add(PostComment(author: userName, text: text));
       notifyListeners();
     }
   }
@@ -160,7 +260,7 @@ class AppState extends ChangeNotifier {
   void addPost(String title, String desc, {String? image}) {
     final newPost = CommunityPost(
       id: 'p_${DateTime.now().millisecondsSinceEpoch}',
-      author: _userName,
+      author: userName,
       date: 'Agora',
       title: title,
       desc: desc,
@@ -215,7 +315,14 @@ class AppState extends ChangeNotifier {
 
   // Profile
   void updateProfile(String name, String bio) {
-    _userName = name;
+    if (_currentUser != null) {
+      _currentUser = UserAccount(
+        name: name,
+        email: _currentUser!.email,
+        password: _currentUser!.password,
+        createdAt: _currentUser!.createdAt,
+      );
+    }
     _userBio = bio;
     notifyListeners();
   }

@@ -14,7 +14,7 @@
 <body>
   <div id="navbar"></div>
 
-  <main>
+  <main id="app-root">
     <!-- HERO -->
     <section class="hero main-pad">
       <div class="container">
@@ -23,10 +23,7 @@
             <span class="badge badge-coral" style="margin-bottom:20px">🌱 Seu assistente de jardinagem</span>
             <h1>Seu jardim mais saudável começa aqui.</h1>
             <p>Monitore suas plantas, receba cuidados personalizados e descubra exatamente o que seu jardim precisa.</p>
-            <div class="hero-actions">
-              <a class="btn btn-primary" href="plants.html"><svg data-lucide="plus" width="18" height="18"></svg>Adicionar minha planta</a>
-              <a class="btn btn-light" href="plants.html">Explorar plantas</a>
-            </div>
+            <div class="hero-actions" id="hero-actions"></div>
           </div>
           <div class="hero-visual">
             <img class="hero-plants" src="assets/images/hero.jpg" alt="Plantas em um jardim interno">
@@ -47,6 +44,7 @@
       </div>
     </section>
 
+    <div id="dashboard-sections">
     <!-- SUMMARY METRICS -->
     <section class="section" style="padding-top:36px">
       <div class="container">
@@ -97,6 +95,7 @@
         <div class="grid grid-3" id="monitor-grid"></div>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="footer">
@@ -157,8 +156,31 @@
     App.init('index');
     UI.bindGlobalEvents();
 
+    function renderHeroActions() {
+      const el = document.getElementById('hero-actions');
+      if (!el) return;
+      if (App.isLoggedIn()) {
+        el.innerHTML = `
+          <a class="btn btn-primary" href="plants.html"><svg data-lucide="plus" width="18" height="18"></svg>Adicionar minha planta</a>
+          <a class="btn btn-light" href="plants.html">Explorar plantas</a>`;
+      } else {
+        el.innerHTML = `
+          <button class="btn btn-primary" data-open-modal="login-modal"><svg data-lucide="user-plus" width="18" height="18"></svg>Criar conta grátis</button>
+          <button class="btn btn-light" data-open-modal="login-modal"><svg data-lucide="log-in" width="18" height="18"></svg>Entrar</button>`;
+      }
+      if (window.lucide) window.lucide.createIcons();
+    }
+
     // ---- Dashboard data ----
     function renderDashboard() {
+      const sections = document.getElementById('dashboard-sections');
+      if (!App.isLoggedIn()) {
+        if (sections) sections.style.display = 'none';
+        renderHeroActions();
+        return;
+      }
+      if (sections) sections.style.display = '';
+
       const plants = App.getPlants();
 
       const healthy = plants.filter(p => { const c = Plants.healthStatus(p).cls; return c !== 'danger' && c !== 'warn' && !p.attention; }).length;
@@ -235,6 +257,7 @@
       // Monitoring
       const monitoring = plants.slice(0, 6);
       document.getElementById('monitor-grid').innerHTML = monitoring.map(p => UI.monitorCard(p)).join('');
+      renderHeroActions();
       if (window.lucide) window.lucide.createIcons();
     }
 

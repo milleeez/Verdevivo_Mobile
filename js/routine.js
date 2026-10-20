@@ -41,17 +41,17 @@ window.Routine = (() => {
       { type: 'Pulverizar', plant: 'Calathea Orbifolia', plantId: 'p3', time: '09:00', desc: 'Pulverizar as folhas para aumentar a umidade.' },
       { type: 'Girar vaso', plant: 'Samambaia', plantId: 'p7', time: '10:15', desc: 'Girar o vaso 180° para um crescimento uniforme.' },
       { type: 'Verificar luz', plant: 'Costela-de-Adão', plantId: 'p2', time: '14:00', desc: 'Observar a posição de luz e reajustar se necessário.' },
-      { type: 'Limpar folhas', plant: 'Zamioculca', plantId: 'p8', time: '16:30', desc: 'Remover o pó das folhas com pano úmido.' },
       { type: 'Adubar', plant: 'Jiboia', plantId: 'p5', time: '18:00', desc: 'Aplicar adubo líquido diluído na rega.' },
     ].map((t, i) => ({ id: 't' + key.replace(/-/g, '') + i, ...t, due: key, done: false, removed: false }));
     return base;
   }
 
   function ensureSeeded() {
-    const key = todayKey();
+    if (window.App && !App.isLoggedIn()) return;
     const tasks = App.getTasks();
-    if (!tasks.some(t => t.due === key && !t.removed)) {
-      App.saveTasks([...tasks, ...seedTasks(key)]);
+    /* Only bootstrap once for a brand-new account with no tasks at all. */
+    if (tasks.length === 0) {
+      App.saveTasks(seedTasks(todayKey()));
     }
   }
 

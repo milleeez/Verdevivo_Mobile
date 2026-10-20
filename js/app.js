@@ -3,6 +3,8 @@
    ============================================================ */
 
 const App = (() => {
+  const SYM = 'vv_session';
+
   const KEYS = {
     plants: 'vv_plants',
     tasks: 'vv_tasks',
@@ -12,9 +14,9 @@ const App = (() => {
     profile: 'vv_profile',
     garden: 'vv_garden',
     savedRecovery: 'vv_savedRecovery',
+    account: 'vv_account',
+    accounts: 'vv_accounts',
   };
-
-  let user = null;
 
   const defaultProfile = {
     name: '',
@@ -25,20 +27,41 @@ const App = (() => {
   };
 
   /* ---------- Storage helpers ---------- */
+  /* Keys that belong to a specific account (namespaced per e-mail). */
+  const SCOPED = ['plants', 'tasks', 'routine', 'notifications', 'profile', 'garden', 'savedRecovery', 'posts'];
+  /* Shared keys (account/session are global). */
+  const SHARED = ['account', 'accounts'];
+
+  function scopeId() {
+    const session = localStorage.getItem(SYM);
+    return session && session !== 'false' ? session : null;
+  }
+
+  function storageKey(key) {
+    if (SHARED.indexOf(key) !== -1) return KEYS[key];
+    const id = scopeId();
+    return id ? KEYS[key] + '::' + id : KEYS[key];
+  }
+
   function read(key, fallback) {
     try {
-      const raw = localStorage.getItem(KEYS[key]);
+      const raw = localStorage.getItem(storageKey(key));
       return raw ? JSON.parse(raw) : fallback;
     } catch (e) {
       return fallback;
     }
   }
   function write(key, value) {
-    localStorage.setItem(KEYS[key], JSON.stringify(value));
+    localStorage.setItem(storageKey(key), JSON.stringify(value));
   }
 
   /* ---------- Plant helpers ---------- */
   function defaultPlants() {
+    return [];
+  }
+
+  /* Sample garden seeded only after the user creates an account. */
+  function starterPlants() {
     return [
       {
         id: 'p1', name: 'Ficus Lyrata', species: 'Figueira-lira', scientific: 'Ficus lyrata',
@@ -78,7 +101,7 @@ const App = (() => {
       },
       {
         id: 'p4', name: 'Cacto Echinopsis', species: 'Echinopsis', scientific: 'Echinopsis sp.',
-        image: plantImg('cactus'), ageYears: 3, heightCm: 25, health: 'Ótima',
+        image: plantImg('calathea'), ageYears: 3, heightCm: 25, health: 'Ótima',
         humidity: 20, temperature: 26, light: 90, lastWatered: daysAgo(14), lastFert: daysAgo(30),
         lastBloom: daysAgo(200), favorite: false, attention: false, space: 'Varanda',
         history: [
@@ -118,17 +141,6 @@ const App = (() => {
         measurements: [ { date: daysAgoStr(120), height: 35 }, { date: daysAgoStr(40), height: 42 }, { date: daysAgoStr(0), height: 45 } ],
         nextCare: 'Mover para local mais iluminado',
       },
-      {
-        id: 'p8', name: 'Zamioculca', species: 'Zamioculcas zamiifolia', scientific: 'Zamioculcas zamiifolia',
-        image: plantImg('zamioculca'), ageYears: 2, heightCm: 60, health: 'Ótima',
-        humidity: 40, temperature: 23, light: 55, lastWatered: daysAgo(12), lastFert: daysAgo(30),
-        lastBloom: null, favorite: true, attention: false, space: 'Escritório',
-        history: [
-          { type: 'Brotamento', date: daysAgoStr(50), desc: 'Nova haste brotando do solo.' },
-        ],
-        measurements: [ { date: daysAgoStr(160), height: 45 }, { date: daysAgoStr(70), height: 53 }, { date: daysAgoStr(0), height: 60 } ],
-        nextCare: 'Rega em 10 dias',
-      },
     ];
   }
 
@@ -137,7 +149,7 @@ const App = (() => {
       ficus: 'assets/images/ficus.jpg', monstera: 'assets/images/monstera.jpg',
       calathea: 'assets/images/calathea.jpg', cactus: 'assets/images/cactus.jpg',
       jiboia: 'assets/images/jiboia.jpg', sansevieria: 'assets/images/sansevieria.jpg',
-      samambaia: 'assets/images/samambaia.jpg', zamioculca: 'assets/images/zamioculca.jpg',
+      samambaia: 'assets/images/samambaia.jpg',
     };
     return map[kind] || map.ficus;
   }
@@ -148,28 +160,27 @@ const App = (() => {
 
   /* ---------- Tasks ---------- */
   function defaultTasks() {
+    return [];
+  }
+
+  /* Sample routine tasks seeded only after the user creates an account. */
+  function starterTasks() {
     const today = new Date().toISOString().slice(0, 10);
     return [
       { id: 't1', type: 'Rega', plant: 'Ficus Lyrata', plantId: 'p1', time: '08:30', desc: 'Usar 150ml de água mineral em temperatura ambiente.', due: today, done: false, removed: false },
       { id: 't2', type: 'Pulverizar', plant: 'Calathea Orbifolia', plantId: 'p3', time: '09:00', desc: 'Pulverizar as folhas para aumentar a umidade.', due: today, done: false, removed: false },
       { id: 't3', type: 'Girar vaso', plant: 'Samambaia', plantId: 'p7', time: '10:15', desc: 'Girar o vaso 180° para um crescimento uniforme.', due: today, done: false, removed: false },
       { id: 't4', type: 'Verificar luz', plant: 'Costela-de-Adão', plantId: 'p2', time: '14:00', desc: 'Observar a posição de luz e reajustar se necessário.', due: today, done: false, removed: false },
-      { id: 't5', type: 'Limpar folhas', plant: 'Zamioculca', plantId: 'p8', time: '16:30', desc: 'Remover o pó das folhas com pano úmido.', due: today, done: false, removed: false },
       { id: 't6', type: 'Adubar', plant: 'Jiboia', plantId: 'p5', time: '18:00', desc: 'Aplicar adubo líquido diluído na rega.', due: today, done: false, removed: false },
     ];
   }
 
   function defaultRoutine() {
-    const out = {};
-    for (let i = 1; i <= 3; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      out[formatDate(d)] = { doneCount: 6, total: 6 };
-    }
-    return out;
+    return {};
   }
 
-  function defaultPosts() {
+  /* Sample neighbors' posts seeded only after the user creates an account. */
+  function starterPosts() {
     return [
       {
         id: 'post1', author: 'Fernanda Lima', avatar: null, date: daysAgoStr(1), title: 'Minha monstera floresceu!',
@@ -193,16 +204,16 @@ const App = (() => {
     ];
   }
 
+  function defaultPosts() {
+    return [];
+  }
+
   function defaultNotifications() {
-    return [
-      { id: 'n1', title: 'Está na hora de regar sua Ficus Lyrata', time: 'Agora', read: false, icon: 'droplet', iconBg: 'blue' },
-      { id: 'n2', title: 'Sua Calathea precisa de mais umidade', time: 'há 10 min', read: false, icon: 'cloud', iconBg: 'warn' },
-      { id: 'n3', title: 'Você completou sua rotina de ontem!', time: 'há 5 h', read: true, icon: 'check', iconBg: 'green' },
-    ];
+    return [];
   }
 
   function defaultGarden() {
-    return { Sala: ['p1', 'p6'], Quarto: ['p3'], Varanda: ['p4'], Jardim: [], Escritório: ['p5', 'p8'], 'Área externa': [], Banheiro: ['p7'] };
+    return {};
   }
 
   /* ---------- Getters ---------- */
@@ -223,10 +234,98 @@ const App = (() => {
   function getSavedRecovery() { return read('savedRecovery', null); }
   function saveRecovery(r) { write('savedRecovery', r); }
 
-  /* ---------- Session / auth (local, organized) ---------- */
-  const SYM = 'vv_session';
-  function isLoggedIn() { return localStorage.getItem(SYM) === 'true'; }
-  function setLoggedIn(v) { localStorage.setItem(SYM, v ? 'true' : 'false'); }
+  /* ---------- Session / auth ---------- */
+  function getAccount() { return read('account', null); }
+  function saveAccount(a) { write('account', a); }
+  function getAccounts() { return read('accounts', []); }
+  function saveAccounts(list) { write('accounts', list); }
+
+  function isLoggedIn() { return localStorage.getItem(SYM) !== null && localStorage.getItem(SYM) !== 'false' && !!getAccount(); }
+  function currentUser() { return getAccount(); }
+
+  function normalizeEmail(email) { return String(email || '').trim().toLowerCase(); }
+
+  /* Create account with name + email + password (any email/password accepted). */
+  function signUp(name, email, password) {
+    name = String(name || '').trim();
+    email = normalizeEmail(email);
+    password = String(password || '');
+    if (!name) return { ok: false, error: 'Informe seu nome.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'Informe um e-mail válido.' };
+    if (password.length < 4) return { ok: false, error: 'A senha precisa ter ao menos 4 caracteres.' };
+
+    const accounts = getAccounts();
+    if (accounts.some(a => a.email === email)) return { ok: false, error: 'Já existe uma conta com este e-mail. Faça login.' };
+
+    const account = { name, email, password: btoa(password), createdAt: new Date().toISOString() };
+    accounts.push(account);
+    saveAccounts(accounts);
+
+    startSession(account);
+
+    const profile = getProfile();
+    profile.name = name;
+    saveProfile(profile);
+
+    seedStarterData();
+    return { ok: true, account };
+  }
+
+  /* Log in with email + password (accepts any credentials once registered). */
+  function signIn(email, password) {
+    email = normalizeEmail(email);
+    password = String(password || '');
+    const account = getAccounts().find(a => a.email === email);
+    if (!account) return { ok: false, error: 'Nenhuma conta encontrada com este e-mail.' };
+    if (account.password !== btoa(password)) return { ok: false, error: 'Senha incorreta.' };
+    startSession(account);
+    const profile = getProfile();
+    if (!profile.name) { profile.name = account.name; saveProfile(profile); }
+    return { ok: true, account };
+  }
+
+  function startSession(account) {
+    localStorage.setItem(SYM, account.email);
+    saveAccount(account);
+  }
+
+  /* Populate a fresh account with a starter garden/routine/community. */
+  function seedStarterData() {
+    if (!localStorage.getItem(storageKey('plants'))) savePlants(starterPlants());
+    if (!localStorage.getItem(storageKey('tasks'))) saveTasks(starterTasks());
+    if (!localStorage.getItem(storageKey('posts'))) savePosts(starterPosts());
+    if (!localStorage.getItem(storageKey('garden'))) {
+      saveGarden({ Sala: ['p1', 'p6'], Quarto: ['p3'], Varanda: ['p4'], Jardim: [], 'Escritório': ['p5'], 'Área externa': [], Banheiro: ['p7'] });
+    }
+    if (!localStorage.getItem(storageKey('notifications'))) {
+      saveNotifications([
+        { id: 'n1', title: 'Bem-vindo(a) ao VerdeVivo! Comece adicionando uma planta.', time: 'Agora', read: false, icon: 'leaf', iconBg: 'green' },
+      ]);
+    }
+  }
+
+  function setLoggedIn(v) { if (!v) logout(); }
+
+  /* Reset the current account's data back to the starter sample. */
+  function resetData() {
+    const id = scopeId();
+    if (!id) return false;
+    SCOPED.forEach(key => localStorage.removeItem(KEYS[key] + '::' + id));
+    seedStarterData();
+    return true;
+  }
+
+  function logout() {
+    localStorage.setItem(SYM, 'false');
+    write('account', null);
+  }
+
+  function requireLogin(message) {
+    if (isLoggedIn()) return true;
+    if (window.App && App.openModal) App.openModal('login-modal');
+    toast('Crie uma conta', message || 'Você precisa de uma conta para continuar.', 'warn');
+    return false;
+  }
 
   /* ---------- Toast ---------- */
   function toast(title, msg, type) {
@@ -255,7 +354,9 @@ const App = (() => {
   /* ---------- Modal ---------- */
   function openModal(idOrEl) {
     const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
-    if (el) el.classList.add('open');
+    if (!el) return;
+    if (el.id === 'login-modal' && el._applyMode) el._applyMode('signup');
+    el.classList.add('open');
   }
   function closeModal(idOrEl) {
     const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
@@ -276,7 +377,10 @@ const App = (() => {
         const target = opener.getAttribute('data-open-modal');
         if (target === 'plant-modal') { if (window.UI) window.UI.openPlantModal(null); return; }
         const el = document.getElementById(target);
-        if (el) el.classList.add('open');
+        if (el) {
+          if (el.id === 'login-modal' && el._applyMode) el._applyMode('signup');
+          el.classList.add('open');
+        }
       }
     });
   }
@@ -360,7 +464,7 @@ const App = (() => {
           ${isLoggedIn()
             ? `<a class="nav-user" href="profile.html"><img class="avatar" src="${me.avatar || defaultAvatar()}" alt="avatar"><span>${me.name.split(' ')[0]}</span></a>
                <button class="btn btn-green btn-sm" data-open-modal="plant-modal">+ Adicionar planta</button>`
-            : `<a class="btn-login" href="#" data-open-modal="login-modal"><svg data-lucide="log-in" width="16" height="16"></svg>Criar conta</a>`}
+            : `<a class="btn-login" href="#" data-open-modal="login-modal"><svg data-lucide="log-in" width="16" height="16"></svg>Entrar</a>`}
           <button class="nav-burger" data-burger aria-label="Menu"><svg data-lucide="menu" width="24" height="24"></svg></button>
         </div>
       </div>
@@ -374,44 +478,80 @@ const App = (() => {
         <a class="nav-link ${active === 'profile' ? 'active' : ''}" href="profile.html"><svg data-lucide="user" width="22" height="22"></svg>Sobre</a>
         <div class="mobile-actions">
           ${isLoggedIn() ? `<button class="btn btn-green btn-block" data-open-modal="plant-modal" data-close-mobile>+ Adicionar planta</button>`
-            : `<button class="btn btn-coral btn-block" data-open-modal="login-modal" data-close-mobile>Criar conta</button>`}
+            : `<button class="btn btn-coral btn-block" data-open-modal="login-modal" data-close-mobile>Entrar / Criar conta</button>`}
         </div>
       </nav>`;
     if (window.lucide) window.lucide.createIcons();
     navWrap.classList.add('nav', 'loaded');
 
-    // Login modal
+    // Auth modal (sign up / sign in)
     let loginModal = document.getElementById('login-modal');
     if (!loginModal) {
       loginModal = document.createElement('div');
       loginModal.className = 'modal-overlay';
       loginModal.id = 'login-modal';
       loginModal.innerHTML = `
-        <div class="modal" style="max-width:420px">
+        <div class="modal" style="max-width:440px">
           <div class="modal-head">
-            <h3>Bem-vindo(a) ao VerdeVivo 🌿</h3>
+            <h3 id="auth-title">Criar conta 🌿</h3>
             <button class="modal-close" data-close-modal><svg data-lucide="x" width="20" height="20"></svg></button>
           </div>
-          <p class="text-muted" style="margin-bottom:20px;font-size:14px">Crie seu perfil para salvar suas plantas, rotinas e publicações. Nenhuma conta é necessária para navegar.</p>
-          <form id="login-form">
-            <div class="field"><label>Seu nome</label><input id="login-name" required placeholder="Ex: Maria"></div>
-            <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
+          <p class="text-muted" style="margin-bottom:20px;font-size:14px" id="auth-sub">Crie sua conta para ter acesso a plantas, rotina, diagnóstico e comunidade.</p>
+          <form id="auth-form">
+            <div class="field" id="auth-name-field"><label>Nome</label><input id="auth-name" placeholder="Ex: Maria"></div>
+            <div class="field"><label>E-mail</label><input type="email" id="auth-email" required placeholder="voce@email.com"></div>
+            <div class="field"><label>Senha</label><input type="password" id="auth-password" required placeholder="Mínimo de 4 caracteres"></div>
+            <button class="btn btn-primary btn-block" type="submit" id="auth-submit">Criar conta</button>
           </form>
-          <p class="text-muted" style="font-size:12.5px;margin-top:14px">Os dados são salvos localmente no seu navegador.</p>
+          <p class="text-muted" style="font-size:13px;margin-top:16px;text-align:center">
+            <span id="auth-switch-text">Já tem conta?</span>
+            <button type="button" id="auth-switch" style="background:none;border:none;color:var(--green-dark);font-weight:800;cursor:pointer;font-size:13px">Entrar</button>
+          </p>
+          <p class="text-muted" style="font-size:12px;margin-top:8px;text-align:center">Os dados ficam salvos localmente no seu navegador.</p>
         </div>`;
       document.body.appendChild(loginModal);
-      const form = loginModal.querySelector('#login-form');
-      form.addEventListener('submit', (e) => {
+
+      const mode = { value: 'signup' };
+      const nameField = loginModal.querySelector('#auth-name-field');
+      const nameInput = loginModal.querySelector('#auth-name');
+      const titleEl = loginModal.querySelector('#auth-title');
+      const subEl = loginModal.querySelector('#auth-sub');
+      const submitBtn = loginModal.querySelector('#auth-submit');
+      const switchBtn = loginModal.querySelector('#auth-switch');
+      const switchText = loginModal.querySelector('#auth-switch-text');
+
+      function applyMode(next) {
+        mode.value = next;
+        const signup = next === 'signup';
+        nameField.style.display = signup ? '' : 'none';
+        nameInput.required = signup;
+        titleEl.textContent = signup ? 'Criar conta 🌿' : 'Entrar na sua conta';
+        subEl.textContent = signup
+          ? 'Crie sua conta para ter acesso a plantas, rotina, diagnóstico e comunidade.'
+          : 'Entre com o e-mail e a senha da sua conta.';
+        submitBtn.textContent = signup ? 'Criar conta' : 'Entrar';
+        switchText.textContent = signup ? 'Já tem conta?' : 'Ainda não tem conta?';
+        switchBtn.textContent = signup ? 'Entrar' : 'Criar conta';
+      }
+      loginModal._applyMode = applyMode;
+
+      switchBtn.addEventListener('click', () => {
+        applyMode(mode.value === 'signup' ? 'signin' : 'signup');
+      });
+
+      loginModal.querySelector('#auth-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        const name = loginModal.querySelector('#login-name').value.trim();
-        const profile = getProfile();
-        profile.name = name || 'Jardineiro(a)';
-        saveProfile(profile);
-        setLoggedIn(true);
+        const email = loginModal.querySelector('#auth-email').value;
+        const password = loginModal.querySelector('#auth-password').value;
+        const name = nameInput.value;
+        const res = mode.value === 'signup' ? signUp(name, email, password) : signIn(email, password);
+        if (!res.ok) { toast('Não foi possível continuar', res.error, 'error'); return; }
         loginModal.classList.remove('open');
+        loginModal.querySelector('#auth-form').reset();
         buildNavbar((window.__activePage) || 'index');
-        toast('Conta criada!', 'Bem-vindo(a), ' + profile.name + '!');
+        toast(mode.value === 'signup' ? 'Conta criada! 🎉' : 'Bem-vindo(a) de volta!', 'Olá, ' + res.account.name + '!');
         if (window.__authCb) window.__authCb();
+        if (window.__refreshAll) window.__refreshAll();
       });
     }
   }
@@ -470,6 +610,47 @@ const App = (() => {
     initModals();
   }
 
+  /* Block a whole page behind an account. Returns true if access is allowed. */
+  function guardPage(opts) {
+    opts = opts || {};
+    const rootId = opts.root || 'app-root';
+    const root = document.getElementById(rootId) || document.querySelector('main');
+    if (!root) return true;
+
+    if (!root.dataset.originalHtml) root.dataset.originalHtml = root.innerHTML;
+
+    function showAuth() {
+      root.innerHTML = `
+        <div class="container page-section">
+          <div class="card empty-state" style="max-width:520px;margin:40px auto">
+            <div class="e-icon"><svg data-lucide="lock" width="44" height="44"></svg></div>
+            <h3>${opts.title || 'Você precisa de uma conta'}</h3>
+            <p>${opts.message || 'Crie uma conta gratuita para acessar este recurso do seu jardim.'}</p>
+            <div class="flex gap-8 mt-16" style="justify-content:center">
+              <button class="btn btn-primary" data-open-modal="login-modal"><svg data-lucide="log-in" width="16" height="16"></svg>Criar conta / Entrar</button>
+              <a class="btn btn-ghost" href="index.html">Voltar ao início</a>
+            </div>
+          </div>
+        </div>`;
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function restore() {
+      root.innerHTML = root.dataset.originalHtml;
+      if (window.lucide) window.lucide.createIcons();
+      if (typeof opts.onReady === 'function') opts.onReady();
+    }
+
+    window.__authCb = () => {
+      if (isLoggedIn()) restore();
+      else showAuth();
+    };
+
+    if (isLoggedIn()) { if (typeof opts.onReady === 'function') opts.onReady(); return true; }
+    showAuth();
+    return false;
+  }
+
   return {
     read, write, KEYS,
     getPlants, savePlants, getTasks, saveTasks, getRoutine, saveRoutine,
@@ -478,7 +659,8 @@ const App = (() => {
     getSavedRecovery, saveRecovery,
     toast, openModal, closeModal, initModals,
     init, buildNavbar, renderNotifications, addNotification,
-    isLoggedIn, setLoggedIn, closeAllMenus,
+    isLoggedIn, setLoggedIn, closeAllMenus, guardPage,
+    getAccount, currentUser, signUp, signIn, logout, requireLogin, resetData,
     plantImg, formatDate, daysAgoStr, defaultAvatar, avatarFor, _avatarFallback: avatarFor,
   };
 })();

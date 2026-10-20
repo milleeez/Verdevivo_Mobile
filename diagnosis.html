@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -14,7 +14,7 @@
   <div id="navbar"></div>
 
   <main class="main-pad" style="background:var(--bg)">
-    <div class="container page-section">
+    <div class="container page-section" id="app-root">
       <div class="section-head">
         <div>
           <h1 class="page-title">Diagnóstico IA</h1>
@@ -73,17 +73,22 @@
     let savedPlan = { steps: [] };
     let camStream = null;
 
-    initUpload();
-
     function initUpload() {
       const area = document.getElementById('upload-area');
       const fileInput = document.getElementById('file-input');
 
-      document.getElementById('pick-file').addEventListener('click', () => fileInput.click());
-      document.getElementById('take-photo').addEventListener('click', openCamera);
+      document.getElementById('pick-file').addEventListener('click', () => {
+        if (!App.requireLogin('Crie uma conta para analisar suas plantas.')) return;
+        fileInput.click();
+      });
+      document.getElementById('take-photo').addEventListener('click', () => {
+        if (!App.requireLogin('Crie uma conta para tirar foto e analisar suas plantas.')) return;
+        openCamera();
+      });
 
       area.addEventListener('click', (e) => {
         if (e.target.closest('button,label')) return;
+        if (!App.requireLogin('Crie uma conta para analisar suas plantas.')) return;
         fileInput.click();
       });
       area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
@@ -91,82 +96,38 @@
       area.addEventListener('drop', (e) => {
         e.preventDefault();
         area.classList.remove('dragover');
+        if (!App.requireLogin('Crie uma conta para analisar suas plantas.')) return;
         if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
       });
       fileInput.addEventListener('change', (e) => { if (e.target.files[0]) { handleFile(e.target.files[0]); fileInput.value = ''; } });
     }
 
-    let currentFacingMode = 'environment';
-
     function stopCamera() {
-      if (camStream) {
-        camStream.getTracks().forEach(t => t.stop());
-        camStream = null;
-      }
+      if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
     }
 
     function openCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        // Fallback direto para câmera nativa do celular
-        const nativeCam = document.createElement('input');
-        nativeCam.type = 'file';
-        nativeCam.accept = 'image/*';
-        nativeCam.capture = 'environment';
-        nativeCam.onchange = (e) => {
-          if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
-        };
-        nativeCam.click();
+        App.toast('Câmera indisponível', 'Seu navegador não suporta acesso à câmera. Selecione uma imagem.', 'error');
         return;
       }
-
-      const existingModal = document.getElementById('camera-modal');
-      if (existingModal) existingModal.remove();
 
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay open';
       overlay.id = 'camera-modal';
       overlay.innerHTML = `
-        <div class="modal modal-wide" style="max-width:540px;padding:20px">
-          <div class="modal-head" style="margin-bottom:12px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="badge badge-green"><svg data-lucide="camera" width="14" height="14"></svg>Câmera Ativa</span>
-              <h3 style="font-size:18px;margin:0">Diagnóstico Botânico</h3>
-            </div>
+        <div class="modal modal-wide">
+          <div class="modal-head">
+            <h3>Tirar foto da planta</h3>
             <button class="modal-close" data-close-modal aria-label="Fechar"><svg data-lucide="x" width="20" height="20"></svg></button>
           </div>
-          <div class="cam-frame" style="position:relative;background:#050c07;border-radius:18px;overflow:hidden;aspect-ratio:4/3;box-shadow:inset 0 0 20px rgba(0,0,0,0.8)">
-            <video id="cam-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
-            
-            <!-- Scanner brackets -->
-            <div class="cam-viewfinder" style="position:absolute;inset:24px;border:2px dashed rgba(255,255,255,0.4);border-radius:16px;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between">
-              <div style="display:flex;justify-content:space-between;padding:8px">
-                <span style="width:20px;height:20px;border-top:3px solid #3fae6a;border-left:3px solid #3fae6a"></span>
-                <span style="width:20px;height:20px;border-top:3px solid #3fae6a;border-right:3px solid #3fae6a"></span>
-              </div>
-              <div class="scan-laser" style="height:2px;background:linear-gradient(90deg,transparent,#3fae6a,transparent);box-shadow:0 0 8px #3fae6a;animation:laserSweep 2s ease-in-out infinite"></div>
-              <div style="display:flex;justify-content:space-between;padding:8px">
-                <span style="width:20px;height:20px;border-bottom:3px solid #3fae6a;border-left:3px solid #3fae6a"></span>
-                <span style="width:20px;height:20px;border-bottom:3px solid #3fae6a;border-right:3px solid #3fae6a"></span>
-              </div>
-            </div>
-
-            <p class="cam-hint" id="cam-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#cfe3d4;background:rgba(0,0,0,0.6);margin:0;padding:20px;text-align:center">Iniciando câmera...</p>
-            <div id="cam-flash" style="position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity 0.15s ease"></div>
+          <div class="cam-frame">
+            <video id="cam-video" autoplay playsinline muted></video>
+            <p class="cam-hint" id="cam-hint">Solicitando acesso à câmera do computador...</p>
           </div>
-          
-          <div style="display:flex;gap:12px;margin-top:16px;justify-content:center;align-items:center;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" id="cam-switch" type="button" title="Alternar câmera frontal/traseira">
-              <svg data-lucide="refresh-cw" width="16" height="16"></svg>Alternar câmera
-            </button>
-            <button class="btn btn-primary" id="cam-capture" disabled style="padding:12px 28px;font-size:16px;box-shadow:0 6px 20px rgba(221,85,36,0.35)">
-              <svg data-lucide="aperture" width="20" height="20"></svg>Fotografar Planta
-            </button>
-            <label class="btn btn-ghost btn-sm" style="cursor:pointer">
-              <svg data-lucide="upload" width="16" height="16"></svg>Da galeria
-              <input type="file" id="modal-file-fallback" accept="image/*" hidden>
-            </label>
+          <div class="flex gap-8 mt-16" style="justify-content:center">
+            <button class="btn btn-primary" id="cam-capture" disabled><svg data-lucide="camera" width="16" height="16"></svg>Capturar foto</button>
           </div>
-          <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px">Enquadre as folhas ou a área afetada dentro da mira para maior precisão.</p>
         </div>`;
       document.body.appendChild(overlay);
       if (window.lucide) window.lucide.createIcons();
@@ -174,110 +135,41 @@
       const video = overlay.querySelector('#cam-video');
       const hint = overlay.querySelector('#cam-hint');
       const captureBtn = overlay.querySelector('#cam-capture');
-      const switchBtn = overlay.querySelector('#cam-switch');
-      const flashEl = overlay.querySelector('#cam-flash');
-      const fallbackInput = overlay.querySelector('#modal-file-fallback');
-
-      fallbackInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) {
-          close();
-          handleFile(e.target.files[0]);
-        }
-      });
 
       const close = () => { stopCamera(); overlay.remove(); };
       overlay.querySelector('[data-close-modal]').addEventListener('click', close);
       overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
-      function startStream(facing) {
-        stopCamera();
-        hint.style.display = 'flex';
-        hint.textContent = 'Acessando câmera...';
-        captureBtn.disabled = true;
-
-        const constraints = {
-          video: {
-            facingMode: { ideal: facing },
-            width: { ideal: 1280 },
-            height: { ideal: 960 }
-          },
-          audio: false
-        };
-
-        navigator.mediaDevices.getUserMedia(constraints)
-          .then(stream => {
-            camStream = stream;
-            video.srcObject = stream;
-            video.style.transform = (facing === 'user') ? 'scaleX(-1)' : 'none';
-            video.onloadedmetadata = () => {
-              hint.style.display = 'none';
-              captureBtn.disabled = false;
-            };
-          })
-          .catch(err => {
-            console.warn('Erro ao acessar com facingMode', facing, err);
-            // Tenta qualquer câmera
-            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-              .then(stream => {
-                camStream = stream;
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                  hint.style.display = 'none';
-                  captureBtn.disabled = false;
-                };
-              })
-              .catch(e => {
-                hint.innerHTML = `<div><p style="margin-bottom:8px">Câmera bloqueada ou indisponível.</p><button type="button" class="btn btn-sm btn-light" id="retry-native">Usar câmera nativa do celular</button></div>`;
-                const retryBtn = hint.querySelector('#retry-native');
-                if (retryBtn) retryBtn.onclick = () => {
-                  close();
-                  const nativeCam = document.createElement('input');
-                  nativeCam.type = 'file';
-                  nativeCam.accept = 'image/*';
-                  nativeCam.capture = 'environment';
-                  nativeCam.onchange = (ev) => {
-                    if (ev.target.files && ev.target.files[0]) handleFile(ev.target.files[0]);
-                  };
-                  nativeCam.click();
-                };
-              });
-          });
-      }
-
-      startStream(currentFacingMode);
-
-      switchBtn.addEventListener('click', () => {
-        currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-        startStream(currentFacingMode);
-      });
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 } }, audio: false })
+        .then(stream => {
+          camStream = stream;
+          video.srcObject = stream;
+          hint.style.display = 'none';
+          captureBtn.disabled = false;
+        })
+        .catch(err => {
+          hint.textContent = err && err.name === 'NotAllowedError'
+            ? 'Acesso à câmera negado. Libere a permissão na barra de endereços ou selecione uma imagem.'
+            : 'Não foi possível acessar a câmera. Selecione uma imagem do dispositivo.';
+          App.toast('Câmera indisponível', 'Use "Selecionar imagem" como alternativa.', 'error');
+        });
 
       captureBtn.addEventListener('click', () => {
         if (!camStream || !video.videoWidth) {
-          App.toast('Aguarde', 'A câmera ainda está inicializando.', 'warn');
+          App.toast('Câmera não pronta', 'Aguarde a imagem aparecer na tela.', 'error');
           return;
         }
-
-        // Feedback de flash fotográfico
-        flashEl.style.opacity = '0.9';
-        setTimeout(() => { flashEl.style.opacity = '0'; }, 120);
-
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
-
-        if (currentFacingMode === 'user') {
-          ctx.translate(canvas.width, 0);
-          ctx.scale(-1, 1);
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.94);
-        setTimeout(() => {
-          close();
-          currentImage = dataUrl;
-          runAnalysis();
-        }, 200);
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        close();
+        currentImage = dataUrl;
+        runAnalysis();
       });
     }
 
@@ -456,6 +348,13 @@
       if (window.lucide) window.lucide.createIcons();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    App.guardPage({
+      root: 'app-root',
+      title: 'O diagnóstico fica na sua conta',
+      message: 'Crie uma conta para analisar fotos das suas plantas e salvar planos de recuperação.',
+      onReady: () => { initUpload(); },
+    });
   </script>
 </body>
 </html>

@@ -6,13 +6,12 @@ window.Diagnosis = (() => {
 
   const SPECIES = [
     { name: 'Calathea Orbifolia', photo: 'calathea', conf: 98, days: 7, problems: ['Queimadura por exposição solar', 'Baixa umidade', 'Estresse hídrico'] },
-    { name: 'Ficus Lyrata', photo: 'ficus', conf: 96, days: 5, problems: ['Solo muito seco', 'Acúmulo de sais'] },
+    { name: 'Ficus Lyrata', photo: 'monstera', conf: 96, days: 5, problems: ['Solo muito seco', 'Acúmulo de sais'] },
     { name: 'Costela-de-Adão', photo: 'monstera', conf: 97, days: 4, problems: ['Falta de água', 'Ar seco demais'] },
-    { name: 'Cacto Echinopsis', photo: 'cactus', conf: 95, days: 3, problems: ['Excesso de rega'] },
+    { name: 'Cacto Echinopsis', photo: 'calathea', conf: 95, days: 3, problems: ['Excesso de rega'] },
     { name: 'Jiboia', photo: 'jiboia', conf: 97, days: 4, problems: ['Folhas envelhecidas', 'Luz insuficiente'] },
     { name: 'Espada-de-São-Jorge', photo: 'sansevieria', conf: 96, days: 3, problems: ['Excesso de umidade no solo'] },
     { name: 'Samambaia', photo: 'samambaia', conf: 94, days: 6, problems: ['Baixa umidade do ar', 'Falhas na rega'] },
-    { name: 'Zamioculca', photo: 'zamioculca', conf: 95, days: 5, problems: ['Teimosia', 'Solo compactado'] },
   ];
 
   const MARKERS = [

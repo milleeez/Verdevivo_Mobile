@@ -25,8 +25,7 @@ class PlantTask {
       PlantTask(id: 't2', type: 'Pulverizar', plant: 'Calathea Orbifolia', plantId: 'p3', time: '09:00', desc: 'Pulverizar as folhas para aumentar a umidade.', due: 'Hoje', done: false),
       PlantTask(id: 't3', type: 'Girar vaso', plant: 'Samambaia', plantId: 'p7', time: '10:15', desc: 'Girar o vaso 180° para um crescimento uniforme.', due: 'Hoje', done: false),
       PlantTask(id: 't4', type: 'Verificar luz', plant: 'Costela-de-Adão', plantId: 'p2', time: '14:00', desc: 'Observar a posição de luz e reajustar se necessário.', due: 'Hoje', done: false),
-      PlantTask(id: 't5', type: 'Limpar folhas', plant: 'Zamioculca', plantId: 'p8', time: '16:30', desc: 'Remover o pó das folhas com pano úmido.', due: 'Hoje', done: false),
-      PlantTask(id: 't6', type: 'Adubar', plant: 'Jiboia', plantId: 'p5', time: '18:00', desc: 'Aplicar adubo líquido diluído na rega.', due: 'Hoje', done: false),
+      PlantTask(id: 't5', type: 'Adubar', plant: 'Jiboia', plantId: 'p5', time: '18:00', desc: 'Aplicar adubo líquido diluído na rega.', due: 'Hoje', done: false),
     ];
   }
 }

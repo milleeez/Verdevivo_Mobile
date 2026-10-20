@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
+import '../widgets/auth_modal.dart';
 import 'home_screen.dart';
 import 'plants_screen.dart';
 import 'routine_screen.dart';
@@ -211,16 +212,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: AppColors.greenDark),
-            tooltip: 'Meu Perfil',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
-          ),
+          if (state.isLoggedIn)
+            IconButton(
+              icon: CircleAvatar(
+                radius: 14,
+                backgroundColor: AppColors.greenMedium,
+                child: Text(
+                  state.userName.isNotEmpty ? state.userName[0].toUpperCase() : 'J',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+              tooltip: 'Meu Perfil',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
+              },
+            )
+          else
+            TextButton.icon(
+              icon: const Icon(Icons.login, size: 16, color: AppColors.coralDark),
+              label: const Text('Entrar', style: TextStyle(color: AppColors.coralDark, fontWeight: FontWeight.bold, fontSize: 13)),
+              onPressed: () => AuthModal.show(context, isSignUp: false),
+            ),
           const SizedBox(width: 6),
         ],
       ),

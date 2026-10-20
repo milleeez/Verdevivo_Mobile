@@ -14,7 +14,7 @@
   <div id="navbar"></div>
 
   <main class="main-pad" style="background:var(--bg)">
-    <div class="container page-section">
+    <div class="container page-section" id="app-root">
       <div class="section-head">
         <div>
           <h1 class="page-title">Minhas Plantas</h1>
@@ -87,7 +87,24 @@
     let currentFilter = 'all';
     let currentQuery = '';
 
+    function bindControls() {
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.getAttribute('data-filter');
+          render();
+        });
+      });
+      const search = document.getElementById('plant-search');
+      if (search) search.addEventListener('input', (e) => {
+        currentQuery = e.target.value.trim();
+        render();
+      });
+    }
+
     function render() {
+      if (!App.isLoggedIn()) return;
       let plants = App.getPlants();
 
       if (currentQuery) {
@@ -121,21 +138,13 @@
       if (window.lucide) window.lucide.createIcons();
     }
 
-    document.querySelectorAll('.filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        currentFilter = tab.getAttribute('data-filter');
-        render();
-      });
+    App.guardPage({
+      root: 'app-root',
+      title: 'Suas plantas ficam na sua conta',
+      message: 'Crie uma conta para adicionar, cuidar e acompanhar suas plantas.',
+      onReady: () => { bindControls(); render(); },
     });
 
-    document.getElementById('plant-search').addEventListener('input', (e) => {
-      currentQuery = e.target.value.trim();
-      render();
-    });
-
-    render();
     window.__refreshPlants = render;
   </script>
 </body>

@@ -122,6 +122,7 @@
     document.addEventListener('click', (e) => {
       const like = e.target.closest('[data-like-post]');
       if (like) {
+        if (!App.requireLogin('Crie uma conta para curtir as publicações.')) return;
         const id = like.getAttribute('data-like-post');
         const posts = App.getPosts();
         const p = posts.find(x => x.id === id);
@@ -188,11 +189,7 @@
       const input = form.querySelector('input');
       const text = input.value.trim();
       if (!text) return;
-      if (!App.isLoggedIn()) {
-        App.openModal('login-modal');
-        App.toast('Crie uma conta para comentar', 'Navegue à vontade, mas comentar exige uma conta.', 'warn');
-        return;
-      }
+      if (!App.requireLogin('Crie uma conta para comentar nas publicações.')) return;
       const posts = App.getPosts();
       const p = posts.find(x => x.id === id);
       if (p) {
@@ -205,11 +202,7 @@
     });
 
     document.querySelector('[data-open-post-modal]').addEventListener('click', () => {
-      if (!App.isLoggedIn()) {
-        App.openModal('login-modal');
-        App.toast('Crie uma conta para publicar', 'Navegue à vontade, mas publicar exige uma conta.', 'warn');
-        return;
-      }
+      if (!App.requireLogin('Crie uma conta para publicar na comunidade.')) return;
       openPostModal(null);
     });
 

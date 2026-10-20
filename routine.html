@@ -14,7 +14,7 @@
   <div id="navbar"></div>
 
   <main class="main-pad" style="background:var(--bg)">
-    <div class="container page-section">
+    <div class="container page-section" id="app-root">
       <div class="section-head">
         <div>
           <h1 class="page-title">Minha rotina</h1>
@@ -186,6 +186,9 @@
     }
 
     document.addEventListener('click', (e) => {
+      const clicked = e.target.closest('[data-cal-day], [data-cal-today], [data-toggle-task], [data-remove-task]');
+      if (!clicked) return;
+      if (!App.isLoggedIn()) return;
       const day = e.target.closest('[data-cal-day]');
       if (day) {
         Routine.setSelectedKey(day.getAttribute('data-cal-day'));
@@ -220,30 +223,48 @@
       }
     });
 
-    document.querySelector('[data-add-task]').addEventListener('click', () => {
-      const sel = document.getElementById('tf-plant');
-      sel.innerHTML = '<option value="">Todas</option>' + App.getPlants().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      document.getElementById('tf-date').value = Routine.getSelectedKey();
-      document.getElementById('task-modal').classList.add('open');
-    });
+    let controlsBound = false;
+    function bindControls() {
+      if (controlsBound) return;
+      controlsBound = true;
 
-    document.getElementById('task-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const type = document.getElementById('tf-type').value;
-      const plantSel = document.getElementById('tf-plant').value;
-      const plantName = plantSel ? Plants.getById(plantSel).name : 'Todas as plantas';
-      const time = document.getElementById('tf-time').value;
-      const due = document.getElementById('tf-date').value || Routine.todayKey();
-      const desc = document.getElementById('tf-desc').value.trim() || '';
-      Routine.addTask({ type, plant: plantName, plantId: plantSel || null, time, desc, due });
-      document.getElementById('task-modal').classList.remove('open');
-      Routine.setSelectedKey(due);
-      App.toast('Cuidado adicionado!', `${type} · ${plantName} · ${time}`);
+      document.querySelector('[data-add-task]').addEventListener('click', () => {
+        const sel = document.getElementById('tf-plant');
+        sel.innerHTML = '<option value="">Todas</option>' + App.getPlants().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        document.getElementById('tf-date').value = Routine.getSelectedKey();
+        document.getElementById('task-modal').classList.add('open');
+      });
+
+      document.getElementById('task-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const type = document.getElementById('tf-type').value;
+        const plantSel = document.getElementById('tf-plant').value;
+        const plantName = plantSel ? Plants.getById(plantSel).name : 'Todas as plantas';
+        const time = document.getElementById('tf-time').value;
+        const due = document.getElementById('tf-date').value || Routine.todayKey();
+        const desc = document.getElementById('tf-desc').value.trim() || '';
+        Routine.addTask({ type, plant: plantName, plantId: plantSel || null, time, desc, due });
+        document.getElementById('task-modal').classList.remove('open');
+        Routine.setSelectedKey(due);
+        App.toast('Cuidado adicionado!', `${type} · ${plantName} · ${time}`);
+        render();
+      });
+    }
+
+    function onReady() {
+      controlsBound = false;
+      bindControls();
+      Routine.ensureSeeded();
       render();
+    }
+
+    App.guardPage({
+      root: 'app-root',
+      title: 'Sua rotina fica na sua conta',
+      message: 'Crie uma conta para organizar seus cuidados diários e acompanhar sua sequência.',
+      onReady,
     });
 
-    Routine.ensureSeeded();
-    render();
     window.__refreshAll = render;
     window.__refreshPlants = render;
   </script>

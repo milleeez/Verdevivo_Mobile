@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
 import '../models/plant.dart';
+import '../widgets/auth_modal.dart';
 import 'plant_detail_screen.dart';
 
 class PlantsScreen extends StatefulWidget {
@@ -17,19 +18,26 @@ class _PlantsScreenState extends State<PlantsScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  void _showAddPlantDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final speciesController = TextEditingController();
-    final scientificController = TextEditingController();
-    final ageController = TextEditingController(text: '1.0');
-    final heightController = TextEditingController(text: '30');
-    String selectedSpace = 'Sala';
-    String selectedImage = 'assets/images/ficus.jpg';
+  void _showPlantModal(BuildContext context, {Plant? existing}) {
+    final state = Provider.of<AppState>(context, listen: false);
+    if (!state.isLoggedIn) {
+      AuthModal.show(context, isSignUp: false, initialMessage: 'Crie uma conta para gerenciar suas plantas.');
+      return;
+    }
+
+    final isEdit = existing != null;
+    final nameController = TextEditingController(text: existing?.name ?? '');
+    final speciesController = TextEditingController(text: existing?.species ?? '');
+    final scientificController = TextEditingController(text: existing?.scientific ?? '');
+    final ageController = TextEditingController(text: existing?.ageYears.toString() ?? '1.0');
+    final heightController = TextEditingController(text: existing?.heightCm.toString() ?? '30');
+    String selectedSpace = existing?.space ?? 'Sala';
+    String selectedImage = existing?.image ?? 'assets/images/monstera.jpg';
 
     final spaces = ['Sala', 'Quarto', 'Varanda', 'Jardim', 'Escritório', 'Área externa', 'Banheiro'];
     final imagePresets = [
-      {'name': 'Ficus', 'path': 'assets/images/ficus.jpg'},
       {'name': 'Monstera', 'path': 'assets/images/monstera.jpg'},
+      {'name': 'Ficus', 'path': 'assets/images/ficus.jpg'},
       {'name': 'Calathea', 'path': 'assets/images/calathea.jpg'},
       {'name': 'Cacto', 'path': 'assets/images/cactus.jpg'},
       {'name': 'Jiboia', 'path': 'assets/images/jiboia.jpg'},
@@ -61,7 +69,10 @@ class _PlantsScreenState extends State<PlantsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Adicionar Nova Planta', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.greenDark)),
+                        Text(
+                          isEdit ? 'Editar Planta' : 'Adicionar Nova Planta',
+                          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.greenDark),
+                        ),
                         IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
                       ],
                     ),
@@ -70,7 +81,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
                       controller: nameController,
                       decoration: InputDecoration(
                         labelText: 'Nome da planta *',
-                        hintText: 'Ex: Minha Monstera',
+                        hintText: 'Ex: Ficus Lyrata',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -79,7 +90,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
                       controller: speciesController,
                       decoration: InputDecoration(
                         labelText: 'Espécie *',
-                        hintText: 'Ex: Costela-de-Adão',
+                        hintText: 'Ex: Figueira-lira',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -147,39 +158,53 @@ class _PlantsScreenState extends State<PlantsScreen> {
                       ),
                       onPressed: () {
                         if (nameController.text.trim().isEmpty) return;
-                        final newPlant = Plant(
-                          id: 'p_${DateTime.now().millisecondsSinceEpoch}',
-                          name: nameController.text.trim(),
-                          species: speciesController.text.trim().isEmpty ? 'Planta Ornamental' : speciesController.text.trim(),
-                          scientific: scientificController.text.trim().isEmpty ? speciesController.text.trim() : scientificController.text.trim(),
-                          image: selectedImage,
-                          ageYears: double.tryParse(ageController.text) ?? 1.0,
-                          heightCm: double.tryParse(heightController.text) ?? 30.0,
-                          health: 'Ótima',
-                          humidity: 50,
-                          temperature: 23,
-                          light: 65,
-                          lastWatered: 'Hoje',
-                          space: selectedSpace,
-                          history: [
-                            PlantHistory(type: 'Adição', date: 'Hoje', desc: 'Planta adicionada ao seu jardim.')
-                          ],
-                          measurements: [
-                            PlantMeasurement(date: 'Hoje', height: double.tryParse(heightController.text) ?? 30.0)
-                          ],
-                          nextCare: 'Regar em 3 dias',
-                        );
-                        Provider.of<AppState>(context, listen: false).addPlant(newPlant);
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: AppColors.greenDark,
-                            content: Text('${newPlant.name} adicionada ao seu jardim!'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+
+                        if (isEdit) {
+                          final updated = existing.copyWith(
+                            name: nameController.text.trim(),
+                            species: speciesController.text.trim().isEmpty ? existing.species : speciesController.text.trim(),
+                            scientific: scientificController.text.trim().isEmpty ? existing.scientific : scientificController.text.trim(),
+                            image: selectedImage,
+                            space: selectedSpace,
+                            heightCm: double.tryParse(heightController.text) ?? existing.heightCm,
+                            ageYears: double.tryParse(ageController.text) ?? existing.ageYears,
+                          );
+                          state.updatePlant(updated);
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(backgroundColor: AppColors.greenDark, content: Text('${updated.name} atualizada!')),
+                          );
+                        } else {
+                          final newPlant = Plant(
+                            id: 'p_${DateTime.now().millisecondsSinceEpoch}',
+                            name: nameController.text.trim(),
+                            species: speciesController.text.trim().isEmpty ? 'Planta Ornamental' : speciesController.text.trim(),
+                            scientific: scientificController.text.trim().isEmpty ? speciesController.text.trim() : scientificController.text.trim(),
+                            image: selectedImage,
+                            ageYears: double.tryParse(ageController.text) ?? 1.0,
+                            heightCm: double.tryParse(heightController.text) ?? 30.0,
+                            health: 'Ótima',
+                            humidity: 50,
+                            temperature: 23,
+                            light: 65,
+                            lastWatered: 'Hoje',
+                            space: selectedSpace,
+                            history: [
+                              PlantHistory(type: 'Adição', date: 'Hoje', desc: 'Planta adicionada ao seu jardim.')
+                            ],
+                            measurements: [
+                              PlantMeasurement(date: 'Hoje', height: double.tryParse(heightController.text) ?? 30.0)
+                            ],
+                            nextCare: 'Regar em 3 dias',
+                          );
+                          state.addPlant(newPlant);
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(backgroundColor: AppColors.greenDark, content: Text('${newPlant.name} adicionada ao seu jardim!')),
+                          );
+                        }
                       },
-                      child: const Text('Adicionar Planta'),
+                      child: Text(isEdit ? 'Salvar Alterações' : 'Adicionar Planta'),
                     ),
                   ],
                 ),
@@ -320,7 +345,7 @@ class _PlantsScreenState extends State<PlantsScreen> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Nova Planta', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () => _showAddPlantDialog(context),
+        onPressed: () => _showPlantModal(context),
       ),
     );
   }
@@ -394,17 +419,36 @@ class _PlantsScreenState extends State<PlantsScreen> {
                 Positioned(
                   top: 12,
                   right: 12,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 20,
-                    child: IconButton(
-                      icon: Icon(
-                        plant.favorite ? Icons.favorite : Icons.favorite_border,
-                        color: plant.favorite ? AppColors.coralDark : AppColors.greenMedium,
-                        size: 20,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.white,
+                        radius: 18,
+                        child: IconButton(
+                          icon: const Icon(Icons.edit, size: 16, color: AppColors.greenDark),
+                          onPressed: () => _showPlantModal(context, existing: plant),
+                        ),
                       ),
-                      onPressed: () => state.toggleFavorite(plant.id),
-                    ),
+                      const SizedBox(width: 8),
+                      CircleAvatar(
+                        backgroundColor: Colors.white,
+                        radius: 18,
+                        child: IconButton(
+                          icon: Icon(
+                            plant.favorite ? Icons.favorite : Icons.favorite_border,
+                            color: plant.favorite ? AppColors.coralDark : AppColors.greenMedium,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            if (!state.isLoggedIn) {
+                              AuthModal.show(context, isSignUp: false, initialMessage: 'Crie uma conta para favoritar suas plantas.');
+                              return;
+                            }
+                            state.toggleFavorite(plant.id);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -466,14 +510,22 @@ class _PlantsScreenState extends State<PlantsScreen> {
                         'Última rega: ${plant.lastWatered}',
                         style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => PlantDetailScreen(plantId: plant.id)),
-                          );
-                        },
-                        child: const Text('Ver detalhes →', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenMedium2)),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => _showPlantModal(context, existing: plant),
+                            child: const Text('Editar', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenMedium)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => PlantDetailScreen(plantId: plant.id)),
+                              );
+                            },
+                            child: const Text('Detalhes →', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenMedium2)),
+                          ),
+                        ],
                       ),
                     ],
                   ),

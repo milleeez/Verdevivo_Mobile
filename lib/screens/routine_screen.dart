@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
 import '../models/task.dart';
+import '../widgets/page_guard.dart';
 
 class RoutineScreen extends StatelessWidget {
   const RoutineScreen({super.key});
@@ -130,197 +131,203 @@ class RoutineScreen extends StatelessWidget {
     final progress = tasks.isEmpty ? 0.0 : (completed / tasks.length);
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: PageGuard(
+        title: 'Sua rotina fica na sua conta',
+        message: 'Crie uma conta para organizar seus cuidados diários e acompanhar sua sequência de regas.',
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Rotina & Cuidados', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.greenDark)),
+                      Text('Seu plano de cuidados para manter o verde vivo.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: AppColors.coralLight, borderRadius: BorderRadius.circular(999)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.local_fire_department, size: 16, color: AppColors.coralDark),
+                        const SizedBox(width: 4),
+                        Text('${state.streakDays} dias', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.coralInk, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Weekly mini calendar
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Text('Rotina & Cuidados', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.greenDark)),
-                    Text('Seu plano de cuidados para manter o verde vivo.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                    _buildDayPill('SEG', '19', true),
+                    _buildDayPill('TER', '20', true, isToday: true),
+                    _buildDayPill('QUA', '21', false),
+                    _buildDayPill('QUI', '22', false),
+                    _buildDayPill('SEX', '23', false),
+                    _buildDayPill('SÁB', '24', false),
+                    _buildDayPill('DOM', '25', false),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: AppColors.coralLight, borderRadius: BorderRadius.circular(999)),
-                  child: Row(
+              ),
+              const SizedBox(height: 18),
+
+              // Progress card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.local_fire_department, size: 16, color: AppColors.coralDark),
-                      const SizedBox(width: 4),
-                      Text('${state.streakDays} dias', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.coralInk, fontSize: 13)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('$completed de ${tasks.length} concluídas hoje', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenDark, fontSize: 15)),
+                          Text('${(progress * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenMedium, fontSize: 15)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor: AppColors.greenLighter,
+                          color: AppColors.greenMedium,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-            // Weekly mini calendar
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.border),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              const SizedBox(height: 20),
+
+              // Tasks header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDayPill('SEG', '19', true),
-                  _buildDayPill('TER', '20', true, isToday: true),
-                  _buildDayPill('QUA', '21', false),
-                  _buildDayPill('QUI', '22', false),
-                  _buildDayPill('SEX', '23', false),
-                  _buildDayPill('SÁB', '24', false),
-                  _buildDayPill('DOM', '25', false),
+                  const Text('Tarefas de Hoje', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.greenDark)),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('+ Nova tarefa'),
+                    onPressed: () => _showAddTaskDialog(context),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 18),
+              const SizedBox(height: 8),
 
-            // Progress card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('$completed de ${tasks.length} concluídas hoje', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenDark, fontSize: 15)),
-                        Text('${(progress * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenMedium, fontSize: 15)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 8,
-                        backgroundColor: AppColors.greenLighter,
-                        color: AppColors.greenMedium,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Tasks header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Tarefas de Hoje', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.greenDark)),
-                TextButton.icon(
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('+ Nova tarefa'),
-                  onPressed: () => _showAddTaskDialog(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Task list
-            if (tasks.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Text('Nenhuma tarefa pendente para hoje! 🎉', style: TextStyle(color: AppColors.textMuted)),
-                ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: tasks.length,
-                itemBuilder: (context, idx) {
-                  final task = tasks[idx];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    color: task.done ? AppColors.greenLighter : Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              task.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                              color: task.done ? AppColors.successInk : AppColors.textLight,
-                              size: 26,
+              // Task list
+              if (tasks.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Text('Nenhuma tarefa pendente para hoje! 🎉', style: TextStyle(color: AppColors.textMuted)),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: tasks.length,
+                  itemBuilder: (context, idx) {
+                    final task = tasks[idx];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      color: task.done ? AppColors.greenLighter : Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                task.done ? Icons.check_circle : Icons.radio_button_unchecked,
+                                color: task.done ? AppColors.successInk : AppColors.textLight,
+                                size: 26,
+                              ),
+                              onPressed: () => state.toggleTask(task.id),
                             ),
-                            onPressed: () => state.toggleTask(task.id),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      task.type,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.greenDark,
-                                        decoration: task.done ? TextDecoration.lineThrough : null,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: task.done ? AppColors.greenLight : AppColors.coralLight,
-                                        borderRadius: BorderRadius.circular(999),
-                                      ),
-                                      child: Text(
-                                        task.time,
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        task.type,
                                         style: TextStyle(
-                                          fontSize: 11.5,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: task.done ? AppColors.greenDark : AppColors.coralInk,
+                                          color: AppColors.greenDark,
+                                          decoration: task.done ? TextDecoration.lineThrough : null,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  task.plant,
-                                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.greenMedium),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(task.desc, style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
-                              ],
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: task.done ? AppColors.greenLight : AppColors.coralLight,
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                        child: Text(
+                                          task.time,
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: task.done ? AppColors.greenDark : AppColors.coralInk,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    task.plant,
+                                    style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.greenMedium),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(task.desc, style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
+                                ],
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.textLight),
-                            onPressed: () => state.removeTask(task.id),
-                          ),
-                        ],
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.textLight),
+                              onPressed: () => state.removeTask(task.id),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-          ],
+                    );
+                  },
+                ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.greenDark,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add_task),
-        onPressed: () => _showAddTaskDialog(context),
-      ),
+      floatingActionButton: state.isLoggedIn
+          ? FloatingActionButton(
+              backgroundColor: AppColors.greenDark,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.add_task),
+              onPressed: () => _showAddTaskDialog(context),
+            )
+          : null,
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
+import '../widgets/auth_modal.dart';
 import 'plant_detail_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -46,8 +47,79 @@ class ProfileScreen extends StatelessWidget {
               onPressed: () {
                 state.updateProfile(nameController.text.trim(), bioController.text.trim());
                 Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(backgroundColor: AppColors.greenDark, content: Text('Perfil atualizado com sucesso!')),
+                );
               },
               child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmResetData(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Restaurar dados de exemplo?', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenDark)),
+          content: const Text(
+            'Isso substituirá suas plantas, tarefas e publicações atuais pelos dados iniciais de exemplo do VerdeVivo.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warningInk),
+              onPressed: () {
+                Provider.of<AppState>(context, listen: false).resetData();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppColors.greenDark,
+                    content: Text('Dados restaurados para o exemplo inicial!'),
+                  ),
+                );
+              },
+              child: const Text('Restaurar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Sair da conta?', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenDark)),
+          content: const Text(
+            'Você precisará fazer login novamente para acessar suas plantas, rotinas e planos.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: AppColors.textMuted))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.dangerInk),
+              onPressed: () {
+                Provider.of<AppState>(context, listen: false).logout();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppColors.greenDark,
+                    content: Text('Você saiu da sua conta.'),
+                  ),
+                );
+              },
+              child: const Text('Sair'),
             ),
           ],
         );
@@ -81,52 +153,104 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 36,
-                        backgroundColor: AppColors.greenLight,
-                        child: const Text('🌿', style: TextStyle(fontSize: 32)),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              child: state.isLoggedIn
+                  ? Column(
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              state.userName,
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                            CircleAvatar(
+                              radius: 36,
+                              backgroundColor: AppColors.greenLight,
+                              child: Text(
+                                state.userName.isNotEmpty ? state.userName[0].toUpperCase() : '🌿',
+                                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: AppColors.greenDark),
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              state.userBio,
-                              style: const TextStyle(fontSize: 12.5, color: Color(0xFFDCEBE1)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    state.userName,
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  if (state.userEmail.isNotEmpty)
+                                    Text(
+                                      state.userEmail,
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFFDCEBE1)),
+                                    ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    state.userBio,
+                                    style: const TextStyle(fontSize: 12.5, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_note, color: Colors.white),
+                              onPressed: () => _showEditProfileDialog(context),
                             ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit_note, color: Colors.white),
-                        onPressed: () => _showEditProfileDialog(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildProfileStat('${state.plants.length}', 'Plantas'),
-                      _buildProfileStat('${state.posts.where((p) => p.userId == 'me').length}', 'Posts'),
-                      _buildProfileStat('${favs.length}', 'Favoritas'),
-                      _buildProfileStat('${state.streakDays}d', 'Sequência'),
-                    ],
-                  ),
-                ],
-              ),
+                        const SizedBox(height: 18),
+                        const Divider(color: Colors.white24),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildProfileStat('${state.plants.length}', 'Plantas'),
+                            _buildProfileStat('${state.posts.where((p) => p.userId == 'me').length}', 'Posts'),
+                            _buildProfileStat('${favs.length}', 'Favoritas'),
+                            _buildProfileStat('${state.streakDays}d', 'Sequência'),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton.icon(
+                              icon: const Icon(Icons.restart_alt, size: 16, color: Colors.white70),
+                              label: const Text('Restaurar dados', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              onPressed: () => _confirmResetData(context),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton.icon(
+                              icon: const Icon(Icons.logout, size: 16, color: AppColors.coralLight),
+                              label: const Text('Sair', style: TextStyle(color: AppColors.coralLight, fontSize: 12, fontWeight: FontWeight.bold)),
+                              onPressed: () => _confirmLogout(context),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        const Text('🌿', style: TextStyle(fontSize: 44)),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Você ainda não tem uma conta',
+                          style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Crie seu perfil para salvar favoritas, tarefas de rotina, publicações e conquistas.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13, color: Color(0xFFDCEBE1)),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.login, size: 18),
+                          label: const Text('Criar conta / Entrar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.coralDark,
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                          ),
+                          onPressed: () => AuthModal.show(context),
+                        ),
+                      ],
+                    ),
             ),
             const SizedBox(height: 24),
 

@@ -536,6 +536,8 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; 
 #detail-grid img {
   transform: scaleX(-1);
 }
+/* Do not mirror the fallback image or its alt text. */
+img.img-failed { transform: none !important; object-fit: contain; background: var(--green-lighter); }
 
 /* ---------- Plant cards ---------- */
 .plant-card { position: relative; }

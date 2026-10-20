@@ -4,6 +4,27 @@
 
 window.UI = (() => {
 
+  /* Default fallback image (inline SVG leaf) shown when a plant photo fails. */
+  const FALLBACK_IMG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+      <rect width="400" height="300" fill="#eaf3ec"/>
+      <g transform="translate(200 150)" fill="none" stroke="#4c7c5f" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 60 C0 10 40 -40 90 -50 C70 10 40 40 0 60 Z"/>
+        <path d="M0 60 C0 10 -40 -40 -90 -50 C-70 10 -40 40 0 60 Z"/>
+        <path d="M0 60 L0 10"/>
+      </g>
+    </svg>`);
+
+  /* Build an <img> with graceful fallback so a broken URL never leaves a blank box. */
+  function imgTag(src, alt, className) {
+    const cls = className ? ` class="${className}"` : '';
+    const safeAlt = String(alt || '').replace(/"/g, '&quot;');
+    const safeSrc = String(src || '').replace(/"/g, '&quot;');
+    return `<img src="${safeSrc || FALLBACK_IMG}" alt="${safeAlt}"${cls} loading="lazy" ` +
+      `onload="this.classList.remove('img-failed')" ` +
+      `onerror="this.onerror=null;this.classList.add('img-failed');this.src='${FALLBACK_IMG}'">`;
+  }
+
   /* ---------- Status dot ---------- */
   function statusDot(p) {
     const s = window.Plants.healthStatus(p);
@@ -16,7 +37,7 @@ window.UI = (() => {
     return `
       <article class="card plant-card card-hover">
         <a href="plant-detail.html?id=${p.id}">
-          <img src="${p.image}" alt="${p.name}" class="pc-img" loading="lazy">
+          ${imgTag(p.image, p.name, 'pc-img')}
         </a>
         <div class="pc-body">
           <div class="flex items-center justify-between">
@@ -38,6 +59,7 @@ window.UI = (() => {
           </div>
           <div class="pc-actions">
             <a class="btn btn-ghost btn-sm" href="plant-detail.html?id=${p.id}">Ver detalhes</a>
+            <button class="btn btn-ghost btn-sm" data-edit="${p.id}">Editar</button>
             <button class="btn btn-primary btn-sm" data-care="${p.id}">Registrar cuidado</button>
           </div>
         </div>
@@ -49,7 +71,7 @@ window.UI = (() => {
     const s = window.Plants.healthStatus(p);
     return `
       <a class="mini-card" href="plant-detail.html?id=${p.id}">
-        <img src="${p.image}" alt="${p.name}" loading="lazy">
+        ${imgTag(p.image, p.name)}
         <div class="mc-info">
           <div class="mc-name">${p.name}</div>
           <div class="mc-sub">${p.species}</div>
@@ -63,7 +85,7 @@ window.UI = (() => {
   function monitorCard(p) {
     return `
       <a class="monitor-card" href="plant-detail.html?id=${p.id}">
-        <img src="${p.image}" alt="${p.name}" loading="lazy">
+        ${imgTag(p.image, p.name)}
         <div class="m-body">
           <div class="m-name">${p.name}</div>
           <div class="m-species">${p.species}</div>
@@ -75,6 +97,7 @@ window.UI = (() => {
 
   /* ---------- Register care modal ---------- */
   function openCareModal(plantId) {
+    if (!App.requireLogin('Crie uma conta para registrar cuidados das suas plantas.')) return;
     const p = window.Plants.getById(plantId);
     if (!p) { App.toast('Erro', 'Planta não encontrada', 'error'); return; }
     const existing = document.getElementById('care-modal');
@@ -130,6 +153,7 @@ window.UI = (() => {
 
   /* ---------- Plant add/edit modal ---------- */
   function openPlantModal(existing) {
+    if (!App.requireLogin('Crie uma conta para adicionar suas plantas.')) return;
     const p = existing || null;
     const oldOverlay = document.getElementById('plant-modal');
     if (oldOverlay && oldOverlay.classList.contains('open')) oldOverlay.remove();
@@ -154,8 +178,17 @@ window.UI = (() => {
               <select id="pf-space">${['Sala','Quarto','Varanda','Jardim','Escritório','Área externa','Banheiro'].map(s => `<option ${p && p.space === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
             </div>
           </div>
-          <div class="field"><label>Link da foto (URL) — ou escolha abaixo</label>
-            <input id="pf-image" value="${p ? p.image : ''}" placeholder="https://... ou deixe para escolher">
+          <div class="field"><label>Foto da planta</label>
+            <div class="flex items-center gap-12" style="flex-wrap:wrap">
+              <img id="pf-preview" src="${p ? p.image : App.plantImg('monstera')}" alt="prévia"
+                onerror="this.onerror=null;this.src='${FALLBACK_IMG}'"
+                style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid var(--border)">
+              <button type="button" class="btn btn-ghost btn-sm" id="pf-upload"><svg data-lucide="upload" width="16" height="16"></svg>Enviar foto</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="pf-image-clear">Usar padrão</button>
+              <input type="file" id="pf-file" accept="image/*" hidden>
+            </div>
+            <input id="pf-image" type="hidden" value="${p ? p.image : ''}">
+            <input id="pf-image-url" class="mt-8" value="${p && p.image && p.image.indexOf('data:') !== 0 ? p.image : ''}" placeholder="Ou cole um link de imagem (https://...)">
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" class="preset-imgs">
             ${presetButtons()}
@@ -169,9 +202,30 @@ window.UI = (() => {
       </div>`;
     document.body.appendChild(overlay);
     if (window.lucide) window.lucide.createIcons();
+    const setImage = (val) => {
+      overlay.querySelector('#pf-image').value = val || '';
+      overlay.querySelector('#pf-preview').src = val || App.plantImg('monstera');
+    };
     overlay.querySelectorAll('.preset-imgs button').forEach(b => b.addEventListener('click', () => {
-      overlay.querySelector('#pf-image').value = b.getAttribute('data-src');
+      setImage(b.getAttribute('data-src'));
+      overlay.querySelector('#pf-image-url').value = '';
     }));
+    overlay.querySelector('#pf-image-url').addEventListener('input', (e) => {
+      if (e.target.value.trim()) setImage(e.target.value.trim());
+    });
+    overlay.querySelector('#pf-upload').addEventListener('click', () => overlay.querySelector('#pf-file').click());
+    overlay.querySelector('#pf-file').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => { setImage(ev.target.result); overlay.querySelector('#pf-image-url').value = ''; };
+      reader.readAsDataURL(f);
+    });
+    overlay.querySelector('#pf-image-clear').addEventListener('click', () => {
+      setImage(App.plantImg('monstera'));
+      overlay.querySelector('#pf-image-url').value = '';
+      overlay.querySelector('#pf-file').value = '';
+    });
     overlay.querySelector('[data-close-modal]').addEventListener('click', () => overlay.remove());
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     overlay.querySelector('#plant-form').addEventListener('submit', (e) => {
@@ -184,7 +238,7 @@ window.UI = (() => {
         ageYears: parseFloat(overlay.querySelector('#pf-age').value) || 1,
         heightCm: parseFloat(overlay.querySelector('#pf-height').value) || 30,
         space: overlay.querySelector('#pf-space').value,
-        image: overlay.querySelector('#pf-image').value.trim() || App.plantImg('ficus'),
+        image: overlay.querySelector('#pf-image').value || App.plantImg('monstera'),
         favorite: overlay.querySelector('#pf-fav').checked,
         attention: overlay.querySelector('#pf-attention').checked,
       };
@@ -192,8 +246,17 @@ window.UI = (() => {
       const idx = plants.findIndex(x => x.id === data.id);
       const defaults = { humidity: 45, temperature: 23, light: 60, health: 'Ótima', lastWatered: new Date().toISOString(), lastFert: new Date().toISOString(), lastBloom: null, history: [], measurements: [{ date: App.formatDate(new Date()), height: data.heightCm }], nextCare: 'Regar quando necessário' };
       if (idx >= 0) {
+        const prevSpace = plants[idx].space;
         plants[idx] = { ...plants[idx], ...data };
         App.savePlants(plants);
+        /* Keep the garden space in sync when the plant moves. */
+        if (prevSpace !== data.space) {
+          const garden = App.getGarden();
+          if (garden[prevSpace]) garden[prevSpace] = garden[prevSpace].filter(pid => pid !== data.id);
+          if (!garden[data.space]) garden[data.space] = [];
+          if (garden[data.space].indexOf(data.id) === -1) garden[data.space].push(data.id);
+          App.saveGarden(garden);
+        }
         App.toast('Planta atualizada!', data.name);
       } else {
         App.savePlants([...plants, { ...defaults, ...data }]);
@@ -213,8 +276,8 @@ window.UI = (() => {
 
   function presetButtons() {
     const imgs = {
-      'Ficus': 'ficus', 'Monstera': 'monstera', 'Calathea': 'calathea', 'Cacto': 'cactus',
-      'Jiboia': 'jiboia', 'Sansevieria': 'sansevieria', 'Samambaia': 'samambaia', 'Zamioculca': 'zamioculca',
+      'Monstera': 'monstera', 'Calathea': 'calathea', 'Cacto': 'calathea',
+      'Jiboia': 'jiboia', 'Sansevieria': 'sansevieria', 'Samambaia': 'samambaia',
     };
     return Object.entries(imgs).map(([name, kind]) =>
       `<button type="button" class="btn btn-ghost btn-sm" data-src="${App.plantImg(kind)}">${name}</button>`).join('');
@@ -242,8 +305,17 @@ window.UI = (() => {
     document.addEventListener('click', (e) => {
       const care = e.target.closest('[data-care]');
       if (care) { openCareModal(care.getAttribute('data-care')); return; }
+      const edit = e.target.closest('[data-edit]');
+      if (edit) {
+        const p = window.Plants.getById(edit.getAttribute('data-edit'));
+        if (!p) return;
+        e.preventDefault();
+        openPlantModal(p);
+        return;
+      }
       const fav = e.target.closest('[data-fav]');
       if (fav) {
+        if (!App.requireLogin('Crie uma conta para salvar favoritas.')) return;
         const id = fav.getAttribute('data-fav');
         const p = window.Plants.getById(id);
         if (!p) return;
@@ -260,6 +332,6 @@ window.UI = (() => {
 
   return {
     plantCard, miniCard, monitorCard, openCareModal, openPlantModal,
-    timeAgo, statusDot, bindGlobalEvents,
+    timeAgo, statusDot, bindGlobalEvents, imgTag, FALLBACK_IMG,
   };
 })();

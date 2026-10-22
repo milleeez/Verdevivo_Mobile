@@ -22,7 +22,7 @@ class FloraeeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VerdeVivo - Floraee Mobile',
+      title: 'VerdeVivo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const MainNavigationScreen(),

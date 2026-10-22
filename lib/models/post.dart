@@ -10,13 +10,15 @@ class CommunityPost {
   final String author;
   final String? avatar;
   final String date;
-  final String title;
-  final String desc;
-  final String? image;
+  String title;
+  String desc;
+  String? image;
+  String category;
   int likes;
   bool liked;
   final List<PostComment> comments;
   final String? userId;
+  bool reported;
 
   CommunityPost({
     required this.id,
@@ -26,10 +28,12 @@ class CommunityPost {
     required this.title,
     required this.desc,
     this.image,
+    this.category = 'Geral',
     this.likes = 0,
     this.liked = false,
     required this.comments,
     this.userId,
+    this.reported = false,
   });
 
   static List<CommunityPost> getDefaultPosts() {
@@ -41,6 +45,7 @@ class CommunityPost {
         title: 'Minha monstera floresceu!',
         desc: 'Depois de 2 anos de cuidado, minha Costela-de-Adão finalmente teve novas fenestras incríveis. Compartilho a felicidade!',
         image: 'assets/images/monstera.jpg',
+        category: 'Conquistas',
         likes: 12,
         liked: false,
         comments: [
@@ -54,6 +59,7 @@ class CommunityPost {
         title: 'Dica: umidade para calathea',
         desc: 'Para quem tem dificuldade com calatheas, a dica é manter um umidificador ou bandeja com pedrinhas e água próximo.',
         image: 'assets/images/calathea.jpg',
+        category: 'Dicas',
         likes: 8,
         liked: false,
         comments: [],
@@ -65,6 +71,7 @@ class CommunityPost {
         title: 'Antes e depois da minha sala',
         desc: 'Transformei meu espaço com plantas de interior e agora sinto o ar muito mais leve e agradável.',
         image: 'assets/images/garden.jpg',
+        category: 'Meu Jardim',
         likes: 19,
         liked: false,
         comments: [

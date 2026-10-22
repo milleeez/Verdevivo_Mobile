@@ -257,7 +257,31 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void addPost(String title, String desc, {String? image}) {
+  void deletePost(String postId) {
+    _posts.removeWhere((p) => p.id == postId);
+    notifyListeners();
+  }
+
+  void editPost(String postId, String title, String desc, {String? image, String? category}) {
+    final idx = _posts.indexWhere((p) => p.id == postId);
+    if (idx != -1) {
+      _posts[idx].title = title;
+      _posts[idx].desc = desc;
+      if (image != null) _posts[idx].image = image;
+      if (category != null) _posts[idx].category = category;
+      notifyListeners();
+    }
+  }
+
+  void reportPost(String postId) {
+    final idx = _posts.indexWhere((p) => p.id == postId);
+    if (idx != -1) {
+      _posts[idx].reported = true;
+      notifyListeners();
+    }
+  }
+
+  void addPost(String title, String desc, {String? image, String? category}) {
     final newPost = CommunityPost(
       id: 'p_${DateTime.now().millisecondsSinceEpoch}',
       author: userName,
@@ -265,12 +289,14 @@ class AppState extends ChangeNotifier {
       title: title,
       desc: desc,
       image: image ?? 'assets/images/garden.jpg',
+      category: category ?? 'Geral',
       likes: 0,
       liked: false,
       comments: [],
       userId: 'me',
     );
     _posts.insert(0, newPost);
+    addNotification('Sua publicação foi compartilhada na comunidade!', 'leaf', 'green');
     notifyListeners();
   }
 
